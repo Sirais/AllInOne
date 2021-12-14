@@ -13,6 +13,8 @@ using ExileCore.Shared;
 using ExileCore.Shared.Abstract;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
+using ImGuiNET;
+using TreeRoutine.Menu;
 
 
 
@@ -38,6 +40,54 @@ namespace AllInOne
 
 
 
+
+        public override void DrawSettings()
+        {
+            ImGuiTreeNodeFlags collapsingHeaderFlags = ImGuiTreeNodeFlags.CollapsingHeader;
+
+            Settings.HotkeyQ40.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.HotkeyQ40);
+
+            if (ImGui.TreeNodeEx("Q40 Picker", collapsingHeaderFlags))
+            {
+                Settings.EnableQ40.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableQ40);
+                ImGui.Separator();
+                Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality);
+                Settings.MaxGemLevel.Value = ImGuiExtension.IntSlider("Maximum Gem level to Sell", Settings.MaxGemLevel);
+                ImGui.TreePop();
+            }
+            if (ImGui.TreeNodeEx("Aura enabler", collapsingHeaderFlags))
+            {
+                Settings.EnableAura.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableAura);
+                ImGui.Separator();
+                ImGui.TreePop();
+            }
+            if (ImGui.TreeNodeEx("Golem recaster", collapsingHeaderFlags))
+            {
+                Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableGolem);
+                ImGui.Separator();
+                ImGui.TreePop();
+            }
+            if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
+            {
+                Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame fpr Itemlevel (Chaos items)", Settings.EnableILFrame);
+                ImGui.Separator();
+                ImGui.TreePop();
+            }
+            if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
+            {
+                Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Frame fpr Itemlevel (Chaos items)", Settings.EnableCraft);
+                ImGui.Separator();
+                ImGui.TreePop();
+            }
+            if (ImGui.TreeNodeEx("ShowMySkellies (Dark Pact Build)", collapsingHeaderFlags))
+            {
+                Settings.EnableSMSkellies.Value = ImGuiExtension.Checkbox("Enable Position and info for skellies", Settings.EnableSMSkellies);
+                ImGui.Separator();
+                ImGui.TreePop();
+            }
+        }
+
+
         public override void Render()
         {
             base.Render();
@@ -47,28 +97,27 @@ namespace AllInOne
                 MarkILvl();
             if (Settings.EnableQ40)
                 Q40Pick();
-            if (Settings.EnableAura) 
+            if (Settings.EnableAura)
                 ;
-            if (Settings.EnableGolem) 
+            if (Settings.EnableGolem)
                 ;
-
-
-
+            if (Settings.EnableSMSkellies)
+                ShowMySkellies();
         }
 
 
         #region Q40 Pick Stuff
         private void Q40Pick()
         {
-            if (!KeyboardHelper.IsKeyToggled(Settings.Hotkey.Value)) // Hotkey Pressed ? 
+            if (!KeyboardHelper.IsKeyToggled(Settings.HotkeyQ40.Value)) // Hotkey Pressed ? 
                 return; // No key pressed just leave
 
-            LogMessage($"AllInOne: Hotkey ({Settings.Hotkey.Value.ToString()}) toggled, Running Q40 Picker", 1);
+            LogMessage($"AllInOne: Hotkey ({Settings.HotkeyQ40.Value.ToString()}) toggled, Running Q40 Picker", 1);
 
             if (!GameController.Game.IngameState.IngameUi.StashElement.IsVisible)
             {
                 LogMessage($"No Open Stash -> leaving ", 1);
-                KeyboardHelper.KeyPress(Settings.Hotkey.Value);
+                KeyboardHelper.KeyPress(Settings.HotkeyQ40.Value);
                 return;
             }
             List<setData> hits;
@@ -78,7 +127,7 @@ namespace AllInOne
             if (hits == null || hits.Count == 0)
             {
                 LogMessage("No Quality Items found ", 1);
-                KeyboardHelper.KeyPress(Settings.Hotkey.Value);
+                KeyboardHelper.KeyPress(Settings.HotkeyQ40.Value);
                 return;
             }
             LogMessage($"AllInOne: Q40 found  {hits.Count} Quality Items in open stash.", 1);
@@ -88,13 +137,13 @@ namespace AllInOne
             if (Sets.BestSet == null)
             {
                 LogMessage("Added Quality is not 40", 1);
-                KeyboardHelper.KeyPress(Settings.Hotkey.Value);
+                KeyboardHelper.KeyPress(Settings.HotkeyQ40.Value);
                 return;
             }
 
             pickup(Sets);
 
-            KeyboardHelper.KeyPress(Settings.Hotkey.Value); // send the hotkey back to the system to turn off the Work
+            KeyboardHelper.KeyPress(Settings.HotkeyQ40.Value); // send the hotkey back to the system to turn off the Work
         }
 
         /// <summary>
@@ -108,7 +157,7 @@ namespace AllInOne
             int i = 1;
             foreach (QualityGem g in Sets.BestSet.Values)
             {
-                LogMessage($"{i} - Q{g.getValue()} X{g.Gem.InventPosX} - Y{g.Gem.InventPosY}", 10);
+                LogMessage($"{i} - Q{g.getValue()} X{g.CheckItem.InventPosX} - Y{g.CheckItem.InventPosY}", 10);
                 i++;
             }
         }
@@ -121,7 +170,7 @@ namespace AllInOne
         {
             foreach (QualityGem g in Sets.BestSet.Values)
             {
-                RectangleF itmPos = g.Gem.GetClientRect();
+                RectangleF itmPos = g.CheckItem.GetClientRect();
                 KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LControlKey);
                 Thread.Sleep(100);//((int)GameController.Game.IngameState.CurLatency);
                 Mouse.SetCursorPosAndLeftClick(RandomizedCenterPoint(itmPos), GameController.Window.GetWindowRectangle().TopLeft);
@@ -202,6 +251,11 @@ namespace AllInOne
         #endregion
 
 
+        private void ShowMySkellies()
+        {
+
+        }
+
         #region basis Stuff 
         // Randomitze clicking Point for Items
         private static Vector2 RandomizedCenterPoint(RectangleF rec)
@@ -228,11 +282,11 @@ namespace AllInOne
     /// </summary>
     public class QualityGem : setData
     {
-        public NormalInventoryItem Gem { get; set; }
+        public NormalInventoryItem CheckItem { get; set; }
         public int Quality { get; set; }
-        public QualityGem (NormalInventoryItem gem,int quality)
+        public QualityGem (NormalInventoryItem itm,int quality)
         {
-            Gem = gem;
+            CheckItem = itm;
             Quality = quality;
         }
 
@@ -243,7 +297,7 @@ namespace AllInOne
 
         public override string ToString()
         {
-            return Gem.Item.ToString();
+            return CheckItem.Item.ToString();
         }
 
     }
