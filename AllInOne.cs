@@ -38,14 +38,11 @@ namespace AllInOne
 
         public override void AreaChange(AreaInstance area) => ingameUI = GameController.IngameState.IngameUi;
 
-
-
-
         public override void DrawSettings()
         {
             ImGuiTreeNodeFlags collapsingHeaderFlags = ImGuiTreeNodeFlags.CollapsingHeader;
 
-            Settings.HotkeyQ40.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.HotkeyQ40);
+            Settings.HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.HotKey);
 
             if (ImGui.TreeNodeEx("Q40 Picker", collapsingHeaderFlags))
             {
@@ -75,7 +72,7 @@ namespace AllInOne
             }
             if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
             {
-                Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Frame fpr Itemlevel (Chaos items)", Settings.EnableCraft);
+                Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Crafting of items", Settings.EnableCraft);
                 ImGui.Separator();
                 ImGui.TreePop();
             }
@@ -91,12 +88,20 @@ namespace AllInOne
         public override void Render()
         {
             base.Render();
-            if (!Settings.Enable.Value) // Plugin enabled = 
+            if (!Settings.Enable.Value) // Plugin enabled ?
                 return; // no, do nothing
-            if (Settings.EnableILFrame)
-                MarkILvl();
+
+            //Triggered Hotkey routines
             if (Settings.EnableQ40)
                 Q40Pick();
+            if (Settings.EnableCraft)
+                Craftie();
+            if (KeyboardHelper.IsKeyToggled(Settings.HotKey.Value)) // Hotkey Pressed ? 
+                KeyboardHelper.KeyPress(Settings.HotKey.Value); // release 
+
+            // Automatic routines
+            if (Settings.EnableILFrame)
+                MarkILvl();
             if (Settings.EnableAura)
                 ;
             if (Settings.EnableGolem)
@@ -109,17 +114,26 @@ namespace AllInOne
         #region Q40 Pick Stuff
         private void Q40Pick()
         {
-            if (!KeyboardHelper.IsKeyToggled(Settings.HotkeyQ40.Value)) // Hotkey Pressed ? 
+            if (!KeyboardHelper.IsKeyToggled(Settings.HotKey.Value)) // Hotkey Pressed ? 
                 return; // No key pressed just leave
 
-            LogMessage($"AllInOne: Hotkey ({Settings.HotkeyQ40.Value.ToString()}) toggled, Running Q40 Picker", 1);
+            //LogMessage($"AllInOne: Hotkey ({Settings.HotKey.Value.ToString()}) toggled, Running Q40 Picker", 1);
+            //LogMessage($"Invtype {GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.InvType.ToString()}", 1);
 
             if (!GameController.Game.IngameState.IngameUi.StashElement.IsVisible)
             {
                 LogMessage($"No Open Stash -> leaving ", 1);
-                KeyboardHelper.KeyPress(Settings.HotkeyQ40.Value);
                 return;
             }
+            if (((GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.InvType != InventoryType.NormalStash) &&
+                (GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.InvType != InventoryType.QuadStash)))
+            {
+                LogMessage($"No Normal or Quad Stash Open  -> leaving Q40", 1);
+                return;
+            }
+
+            KeyboardHelper.KeyPress(Settings.HotKey.Value); // send the hotkey back to the system to turn off the Work
+
             List<setData> hits;
             hits = getQualityType("Skill Gem"); // Try to find gems
             if (hits == null || hits.Count == 0)
@@ -127,7 +141,6 @@ namespace AllInOne
             if (hits == null || hits.Count == 0)
             {
                 LogMessage("No Quality Items found ", 1);
-                KeyboardHelper.KeyPress(Settings.HotkeyQ40.Value);
                 return;
             }
             LogMessage($"AllInOne: Q40 found  {hits.Count} Quality Items in open stash.", 1);
@@ -137,13 +150,11 @@ namespace AllInOne
             if (Sets.BestSet == null)
             {
                 LogMessage("Added Quality is not 40", 1);
-                KeyboardHelper.KeyPress(Settings.HotkeyQ40.Value);
                 return;
             }
 
             pickup(Sets);
 
-            KeyboardHelper.KeyPress(Settings.HotkeyQ40.Value); // send the hotkey back to the system to turn off the Work
         }
 
         /// <summary>
@@ -155,7 +166,7 @@ namespace AllInOne
             LogMessage($"V5 :found set for Q40 contains {Sets.BestSet.Values.Count} Gems", 10);
 
             int i = 1;
-            foreach (QualityGem g in Sets.BestSet.Values)
+            foreach (QualityItem g in Sets.BestSet.Values)
             {
                 LogMessage($"{i} - Q{g.getValue()} X{g.CheckItem.InventPosX} - Y{g.CheckItem.InventPosY}", 10);
                 i++;
@@ -168,7 +179,7 @@ namespace AllInOne
         /// <param name="Sets"></param>
         private void pickup(SetFinder Sets)
         {
-            foreach (QualityGem g in Sets.BestSet.Values)
+            foreach (QualityItem g in Sets.BestSet.Values)
             {
                 RectangleF itmPos = g.CheckItem.GetClientRect();
                 KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LControlKey);
@@ -180,7 +191,7 @@ namespace AllInOne
                 Thread.Sleep(Settings.ExtraDelay);
             }
         }
-        
+
         /// <summary>inventory
         /// "Skill Gem"
         /// </summary>
@@ -195,23 +206,25 @@ namespace AllInOne
             if (visibleStash == null)
                 return null;
             IList<NormalInventoryItem> inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
-            foreach (NormalInventoryItem item in inventoryItems)
-            {
-                BaseItemType baseItemType = GameController.Files.BaseItemTypes.Translate(item.Item.Path);
-
-                if (baseItemType.ClassName.Contains(itemtype))
+            if (inventoryItems != null)
+            { 
+                foreach (NormalInventoryItem item in inventoryItems)
                 {
-                    int Quality = item.Item.GetComponent<Quality>().ItemQuality;
-                    if (Quality > 0)
-                        if (Quality <= Settings.MaxGemQuality)
-                            res.Add(new QualityGem(item, Quality));
+                    BaseItemType baseItemType = GameController.Files.BaseItemTypes.Translate(item.Item.Path);
+
+                    if (baseItemType.ClassName.Contains(itemtype))
+                    {
+                        int Quality = item.Item.GetComponent<Quality>().ItemQuality;
+                        if (Quality > 0)
+                            if (Quality <= Settings.MaxGemQuality)
+                                res.Add(new QualityItem(item, Quality));
+                    }
                 }
             }
             return res;
         }
 
         #endregion
-
 
         #region Mrk Ilvl 
         private void MarkILvl ()
@@ -222,6 +235,11 @@ namespace AllInOne
             var visibleStash = stashPanel.VisibleStash;
             if (visibleStash == null)
                 return;
+            if (!((visibleStash.InvType != InventoryType.NormalStash) || (visibleStash.InvType != InventoryType.QuadStash)))
+            {
+                return;
+            }
+
             IList<NormalInventoryItem> inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
             if (inventoryItems == null)
                 return;
@@ -250,11 +268,83 @@ namespace AllInOne
         }
         #endregion
 
-
+        #region Skellie Stuff 
         private void ShowMySkellies()
         {
 
         }
+
+        #endregion
+
+        #region Craftie stuff
+        private void Craftie()
+        {
+            if (!KeyboardHelper.IsKeyToggled(Settings.HotKey.Value)) // Hotkey Pressed ? 
+            {
+                return; // No key pressed just leave
+            }
+            if (!GameController.Game.IngameState.IngameUi.StashElement.IsVisible)
+            {
+                LogMessage($"No Open Stash -> leaving ", 1);
+                return;
+            }
+            if (GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
+            {
+                LogMessage($"Crafing only in Curerncy Stash -> leaving", 1);
+                return;
+            }
+            NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
+            LogMessage($"Crafting {itemToCraft.Item.ToString()}", 1);
+
+        }
+
+        private bool IsCraftable(NormalInventoryItem item)
+        {
+            if (item.Item.GetComponent<Base>().isCorrupted)
+            {
+                LogMessage("Item is non-craftable (corrupted).", 5);
+                return false;
+            }
+
+            if (!item.Item.GetComponent<Mods>().Identified)
+            {
+                LogMessage("Item is non-craftable (unidentified).", 5);
+                return false;
+            }
+
+            if (!item.Item.GetComponent<Mods>().IsMirrored)
+            {
+                LogMessage("Item is non-craftable (Mirrored).", 5);
+                return false;
+            }
+
+
+            return true;
+        }
+
+
+        /// <summary>
+        /// Find the first item in Currency Stash that is not a currency.
+        /// </summary>
+        /// <returns></returns>
+        private NormalInventoryItem CraftingItemFromCurrencyStash()
+        {
+            IList<NormalInventoryItem> inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
+            NormalInventoryItem itm = null;
+            if (inventoryItems != null)
+            {
+                int cnt = 0;
+                while (itm == null && cnt<inventoryItems.Count)
+                foreach (NormalInventoryItem item in inventoryItems)
+                {
+                        if (!item.Item.GetComponent<RenderItem>().ResourcePath.Contains("Currency"))
+                            itm = item;
+                }
+            }
+            return itm;
+        }
+
+        #endregion
 
         #region basis Stuff 
         // Randomitze clicking Point for Items
@@ -276,34 +366,6 @@ namespace AllInOne
         #endregion
 
     }
-
-    /// <summary>
-    /// Collectionobject for subsetSum Quality 40 !
-    /// </summary>
-    public class QualityGem : setData
-    {
-        public NormalInventoryItem CheckItem { get; set; }
-        public int Quality { get; set; }
-        public QualityGem (NormalInventoryItem itm,int quality)
-        {
-            CheckItem = itm;
-            Quality = quality;
-        }
-
-        public int getValue()
-        {
-            return Quality; // Gem.GetComponent<Quality>().ItemQuality;
-        }
-
-        public override string ToString()
-        {
-            return CheckItem.Item.ToString();
-        }
-
-    }
-
-
-
 
 }
 

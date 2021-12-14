@@ -22,13 +22,13 @@ namespace AllInOne
         public HotkeyNode Key09 { get; set; }
         public HotkeyNode Key10 { get; set; }
 
+        [Menu("Hotkey for picking up gems")]
+        public HotkeyNode HotKey { get; set; }
 
 
         [Menu("Enable Q40Picks ")]
         public ToggleNode EnableQ40 { get; set; }
 
-        [Menu("Hotkey for picking up gems")]
-        public HotkeyNode HotkeyQ40 { get; set; }
 
         [Menu("Maximum Quality to Sell")]
         public RangeNode<int> MaxGemQuality { get; set; }
@@ -76,7 +76,7 @@ namespace AllInOne
 
 
         //plugin 
-        HotkeyQ40 = Keys.NumPad8;
+        HotKey = Keys.NumPad8;
             MaxGemQuality = new RangeNode<int> (18, 1, 19);
             MaxGemLevel = new RangeNode<int>(18, 1, 19);
             ExtraDelay = new RangeNode<int>(100, 1, 1000);
