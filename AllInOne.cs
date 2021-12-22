@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using SharpDX;
 using System.Threading;
+using System.Windows.Forms;
 using Druzil.Poe.Libs;
 using ExileCore;
 using ExileCore.PoEMemory.Components;
@@ -23,6 +24,8 @@ namespace AllInOne
     internal class AllInOne : BaseSettingsPlugin<AllInOneSettings>
     {
 
+        private bool isCrafting;
+
         private IngameUIElements ingameUI;
 
 
@@ -36,7 +39,10 @@ namespace AllInOne
             return true;
         }
 
-        public override void AreaChange(AreaInstance area) => ingameUI = GameController.IngameState.IngameUi;
+        public override void AreaChange(AreaInstance area)
+        {
+            ingameUI = GameController.IngameState.IngameUi;
+        }
 
         public override void DrawSettings()
         {
@@ -54,32 +60,32 @@ namespace AllInOne
             }
             if (ImGui.TreeNodeEx("Aura enabler", collapsingHeaderFlags))
             {
-                Settings.EnableAura.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableAura);
-                ImGui.Separator();
+                Settings.EnableAura.Value = ImGuiExtension.Checkbox("Enable Aura Recaster", Settings.EnableAura);
+                //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Golem recaster", collapsingHeaderFlags))
             {
-                Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableGolem);
-                ImGui.Separator();
+                Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Golem Recaster", Settings.EnableGolem);
+                //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
             {
-                Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame fpr Itemlevel (Chaos items)", Settings.EnableILFrame);
-                ImGui.Separator();
+                Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame for Itemlevel (Chaos items)", Settings.EnableILFrame);
+                //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
             {
                 Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Crafting of items", Settings.EnableCraft);
-                ImGui.Separator();
+                //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("ShowMySkellies (Dark Pact Build)", collapsingHeaderFlags))
             {
                 Settings.EnableSMSkellies.Value = ImGuiExtension.Checkbox("Enable Position and info for skellies", Settings.EnableSMSkellies);
-                ImGui.Separator();
+                //ImGui.Separator();
                 ImGui.TreePop();
             }
         }
@@ -118,15 +124,15 @@ namespace AllInOne
                 return; // No key pressed just leave
 
             //LogMessage($"AllInOne: Hotkey ({Settings.HotKey.Value.ToString()}) toggled, Running Q40 Picker", 1);
-            //LogMessage($"Invtype {GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.InvType.ToString()}", 1);
+            //LogMessage($"Invtype {ingameUI.StashElement.VisibleStash.InvType.ToString()}", 1);
 
-            if (!GameController.Game.IngameState.IngameUi.StashElement.IsVisible)
+            if (!ingameUI.StashElement.IsVisible)
             {
                 LogMessage($"No Open Stash -> leaving ", 1);
                 return;
             }
-            if (((GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.InvType != InventoryType.NormalStash) &&
-                (GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.InvType != InventoryType.QuadStash)))
+            if (((ingameUI.StashElement.VisibleStash.InvType != InventoryType.NormalStash) &&
+                (ingameUI.StashElement.VisibleStash.InvType != InventoryType.QuadStash)))
             {
                 LogMessage($"No Normal or Quad Stash Open  -> leaving Q40", 1);
                 return;
@@ -199,7 +205,7 @@ namespace AllInOne
         private List<setData> getQualityType(string itemtype)
         {
             List<setData> res = new List<setData>();
-            var stashPanel = GameController.Game.IngameState.IngameUi.StashElement;
+            var stashPanel = ingameUI.StashElement;
             if (!stashPanel.IsVisible)
                 return null;
             var visibleStash = stashPanel.VisibleStash;
@@ -229,7 +235,7 @@ namespace AllInOne
         #region Mrk Ilvl 
         private void MarkILvl ()
         {
-            var stashPanel = GameController.Game.IngameState.IngameUi.StashElement;
+            var stashPanel = ingameUI.StashElement;
             if (!stashPanel.IsVisible)
                 return;
             var visibleStash = stashPanel.VisibleStash;
@@ -279,24 +285,58 @@ namespace AllInOne
         #region Craftie stuff
         private void Craftie()
         {
-            if (!KeyboardHelper.IsKeyToggled(Settings.HotKey.Value)) // Hotkey Pressed ? 
+            if (Settings.HotKey.PressedOnce())
+            //if (KeyboardHelper.IsKeyToggled(Settings.HotKey.Value)) // Hotkey Pressed ? 
             {
-                return; // No key pressed just leave
+                LogMessage($"Toggle", 1);
+                if (!isCrafting) // Hotkey Toggled
+                {
+                    LogMessage($"Craftie: Hotkey currently toggled, press {Settings.HotKey.Value.ToString()} to disable.", 1);
+                    
+                }
+                //else
+                //    if (KeyboardHelper.IsKeyDown(Keys.LShiftKey))
+                //        KeyboardHelper.KeyUp(Keys.LShiftKey);
+                isCrafting = !isCrafting;
             }
-            if (!GameController.Game.IngameState.IngameUi.StashElement.IsVisible)
+
+            if (isCrafting)
             {
-                LogMessage($"No Open Stash -> leaving ", 1);
-                return;
+                if (!ingameUI.StashElement.IsVisible)
+                {
+                    LogMessage($"No Open Stash -> leaving ", 1);
+                    isCrafting = false; // turn off crafting if Stash is closed!
+                    return;
+                }
+                if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
+                {
+                    LogMessage($"Crafing only in Curerncy Stash -> leaving", 1);
+                    isCrafting = false; // turn off crafting if Stash is changed!
+                    return;
+                }
+                Craftinfo();
+                NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
+                LogMessage($"Crafting {itemToCraft.Item.ToString()}", 1);
             }
-            if (GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
-            {
-                LogMessage($"Crafing only in Curerncy Stash -> leaving", 1);
-                return;
-            }
-            NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
-            LogMessage($"Crafting {itemToCraft.Item.ToString()}", 1);
+        }
+
+        private void Craftinfo()
+        {
+            bool windowState = true;
+            System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.Position.X + ingameUI.StashElement.VisibleStash.Width,     ingameUI.StashElement.VisibleStash.Position.Y);
+
+            ImGui.Begin("Craftie");// , ref windowState,ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoBringToFrontOnFocus); //| ImGuiWindowFlags.NoInputs 
+            if (ImGui.Button("Reload")) CraftIt();
+            ImGui.SetWindowPos(Pos);
+            ImGui.SetWindowSize(new System.Numerics.Vector2(300, 300));
+            ImGui.End();
+        }
+
+        public void CraftIt()
+        {
 
         }
+
 
         private bool IsCraftable(NormalInventoryItem item)
         {
