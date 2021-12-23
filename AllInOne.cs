@@ -18,16 +18,21 @@ using ImGuiNET;
 using TreeRoutine.Menu;
 
 
+//Todo : Shift state der tastatur beim schließen zurücksetzten, ausschalten crafting mit F8 
+
 
 namespace AllInOne
 {
     internal class AllInOne : BaseSettingsPlugin<AllInOneSettings>
     {
 
-        private bool isCrafting;
+        private bool isCraftingWindowVisible;
+        private bool doCraft;
         bool useScraps = true;
-        int slots = 5;
+        int sockets = 5;
         int links = 5;
+        private string lastCurrency;
+        private int lastState = 0;
 
         private IngameUIElements ingameUI;
 
@@ -39,6 +44,9 @@ namespace AllInOne
         public override bool Initialise()
         {
             ingameUI = GameController.IngameState.IngameUi;
+            isCraftingWindowVisible = false;
+            lastCurrency = "";
+            doCraft = false;
             return true;
         }
 
@@ -290,7 +298,7 @@ namespace AllInOne
         {
             if (!ingameUI.StashElement.IsVisible)
             {
-                isCrafting = false;
+                isCraftingWindowVisible = false;
                 return;
             }
             if (((ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)))
@@ -299,59 +307,153 @@ namespace AllInOne
             }
     
             LogMessage($"Toggle", 1);
-            if (!isCrafting) // Hotkey Toggled
+            if (!isCraftingWindowVisible) // Hotkey Toggled
             {
-                isCrafting = false;
+                isCraftingWindowVisible = false;
                 LogMessage($"Craftie: Hotkey currently toggled, press {Settings.HotKey.Value.ToString()} to disable.", 1);
 
             }
-            isCrafting = !isCrafting;
+            isCraftingWindowVisible = !isCraftingWindowVisible;
         }
   
         private void Craftie ()
         { 
-            if (isCrafting)
+            if (isCraftingWindowVisible)
             {
                 if (!ingameUI.StashElement.IsVisible)
                 {
                     LogMessage($"No Open Stash -> leaving ", 1);
-                    isCrafting = false; // turn off crafting if Stash is closed!
+                    isCraftingWindowVisible = false; // turn off crafting if Stash is closed!
+                    doCraft = false;
                     return;
                 }
                 if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
                 {
                     LogMessage($"Crafing only in Curerncy Stash -> leaving", 1);
-                    isCrafting = false; // turn off crafting if Stash is changed!
+                    isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
+                    doCraft = false;
                     return;
                 }
-                CraftWindow();
+
                 NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
+                if (itemToCraft == null)
+                {
+                    LogMessage($"No Item To Craft -> leaving", 1);
+                    isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
+                    doCraft = false;
+                    return;
+                }
+
+                if (!IsCraftable(itemToCraft))
+                {
+                    LogMessage($"Item not craftable -> leaving", 1);
+                    isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
+                    doCraft = false;
+                    return;
+                }
                 LogMessage($"Crafting {itemToCraft.Item.ToString()}", 1);
+
+
+                CraftWindow(itemToCraft);
+                if (doCraft)
+                    CraftIt(itemToCraft);
             }
         }
 
-        private void CraftWindow()
+        private void CraftWindow(NormalInventoryItem itemToCraft)
         {
-            bool windowState = true;
             System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.Position.X + ingameUI.StashElement.VisibleStash.Width,     ingameUI.StashElement.VisibleStash.Position.Y);
 
-            ImGui.Begin("Craftie");// , ref windowState,ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoBringToFrontOnFocus); //| ImGuiWindowFlags.NoInputs 
+            ImGui.Begin("Craftie");
             ImGui.SetNextWindowSizeConstraints(Pos, new System.Numerics.Vector2(300, 300));
-            //ImGui.SetWindowPos(Pos);
-            //ImGui.SetWindowSize(new System.Numerics.Vector2(300, 300));
 
+            ImGui.TextColored(Color.Yellow.ToImguiVec4(), GameController.Files.BaseItemTypes.Translate(itemToCraft.Item.Path).ClassName);
 
             ImGui.Checkbox("Use Scraps", ref useScraps);
-            ImGui.SliderInt("Min Slots", ref slots, 1, 6);
-            ImGui.SliderInt("Min Links", ref links, 1, 6);
+            ImGui.SliderInt("Min Slots", ref sockets, 0, 6);
+            ImGui.SliderInt("Min Links", ref links, 0, 6);
 
-            if (ImGui.Button("Reload")) CraftIt();
+            
+            if (doCraft)
+            {
+                if (ImGui.Button("Stop Crafting")) doCraft=false;
+            }
+            else
+            {
+                if (ImGui.Button("Crafit")) doCraft = true;
+            }
             ImGui.End();
         }
 
-        public void CraftIt()
-        {
 
+
+        public void CraftIt(NormalInventoryItem itemToCraft)
+        {
+            var x = itemToCraft;
+            string orb = "";
+            if (itemToCraft.Item.HasComponent<Quality>() && useScraps)
+            {
+                Quality comp = itemToCraft.Item.GetComponent<Quality>();
+                if (comp.ItemQuality < 20)
+                    switch (getType(itemToCraft))
+                    {
+                        case "weapon":
+                            orb = "Blacksmith's Whetstone";
+                            break;
+                        case "armour":
+                            orb = "Armourer's Scrap";
+                            break;
+                        case "flask":
+                            orb = "Glasblower's Bauble";
+                            break;
+                        default:
+                            orb = "";
+                            break;
+                    }
+
+            }
+
+            //if (itemToCraft.Item.HasComponent<Sockets>() && sockets>0)
+            //{
+
+            //}
+            //if (itemToCraft.Item.GetComponent<Sockets>)
+            //{
+
+            //}
+
+            if (orb != "")
+            {
+                NormalInventoryItem Currency = DoWeHaveCurrency(orb);
+                if (Currency != null)
+                {
+                    var currencyPos = RandomizedCenterPoint(Currency.GetClientRect());
+                    var windowOffset = GameController.Window.GetWindowRectangle().TopLeft;
+                    if (!KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey) || lastCurrency != orb) // ch: only need to klick Curreny when Shift isnt pressed or if last currenc was different
+                    {
+                        if (KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey)) // releast shift state first on different Currency
+                            KeyboardHelper.KeyUp(System.Windows.Forms.Keys.LShiftKey);
+                        Mouse.SetCursorPosAndRightClick(currencyPos, windowOffset, Settings.ExtraDelay.Value);
+                    }
+                    Thread.Sleep(50);
+
+                    if (!KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey)) // Time to hit the Shift key
+                    {
+                        lastState = 1;
+
+                        KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LShiftKey);
+                    }
+
+                    Mouse.SetCursorPosAndLeftClick(itemToCraft.GetClientRect().Center, windowOffset, Settings.ExtraDelay.Value);
+                    lastCurrency = orb;
+                    Thread.Sleep(50 * 3);
+                }
+            }
+        }
+
+        private void CraftWithCurrency (NormalInventoryItem itemToCraft, NormalInventoryItem currency)
+        {
+            LogMessage($"Using {currency}", 1);
         }
 
 
@@ -369,14 +471,34 @@ namespace AllInOne
                 return false;
             }
 
-            if (!item.Item.GetComponent<Mods>().IsMirrored)
+            if (item.Item.GetComponent<Mods>().IsMirrored)
             {
                 LogMessage("Item is non-craftable (Mirrored).", 5);
                 return false;
             }
 
-
             return true;
+        }
+
+        private NormalInventoryItem DoWeHaveCurrency(string baseName)
+        {
+            NormalInventoryItem itm = null;
+            IList<NormalInventoryItem> inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
+            if (inventoryItems == null || inventoryItems.Count == 0)
+            {
+                return null;
+            }
+            int cnt = 0;
+            while (itm == null && cnt < inventoryItems.Count)
+                foreach (NormalInventoryItem item in inventoryItems)
+                {
+                    if (GameController.Files.BaseItemTypes.Translate(item.Item.Path).BaseName.Equals(baseName))
+                    {
+                        itm = item;
+                        break;
+                    }
+                }
+            return itm;
         }
 
 
@@ -395,7 +517,10 @@ namespace AllInOne
                 foreach (NormalInventoryItem item in inventoryItems)
                 {
                         if (!item.Item.GetComponent<RenderItem>().ResourcePath.Contains("Currency"))
+                        {
                             itm = item;
+                            break;
+                        }
                 }
             }
             return itm;
@@ -403,9 +528,89 @@ namespace AllInOne
 
         #endregion
 
-        #region basis Stuff 
-        // Randomitze clicking Point for Items
-        private static Vector2 RandomizedCenterPoint(RectangleF rec)
+
+        #region basic Stuff 
+
+        private string getType(NormalInventoryItem itm)
+        {
+            if (isWeapon(itm)) return "weapon";
+            if (isArmour(itm)) return "armour";
+            if (isFlask(itm)) return "flask";
+            if (isJewelry(itm)) return "jewelry";
+            if (isJewel(itm)) return "jewel";
+            return "";
+        }
+
+        private bool isWeapon(NormalInventoryItem itm)
+        {
+            List<string> Weapons = new List<string>
+            {
+                "One Hand Mace",
+                "Two Hand Mace",
+                "One Hand Axe",
+                "Two Hand Axe",
+                "One Hand Sword",
+                "Two Hand Sword",
+                "Thrusting One Hand Sword",
+                "Bow",
+                "Claw",
+                "Dagger",
+                "Sceptre",
+                "Staff",
+                "Wand"
+            };
+            return (Weapons.Contains(GameController.Files.BaseItemTypes.Translate(itm.Item.Path).ClassName));
+        }
+
+        private bool isArmour(NormalInventoryItem itm)
+        {
+            List<string> Weapons = new List<string>
+            {
+                "Body Armour",
+                "Boots",
+                "Gloves",
+                "Helmet"
+            };
+            return (Weapons.Contains(GameController.Files.BaseItemTypes.Translate(itm.Item.Path).ClassName));
+        }
+
+        private bool isJewelry(NormalInventoryItem itm)
+        {
+            List<string> Weapons = new List<string>
+            {
+                "Belt",
+                "Ring",
+                "Amulet"
+            };
+            return (Weapons.Contains(GameController.Files.BaseItemTypes.Translate(itm.Item.Path).ClassName));
+        }
+
+
+        private bool isJewel(NormalInventoryItem itm)
+        {
+            List<string> Weapons = new List<string>
+            {
+                "Jewel",
+                "AbyssJewel"
+            };
+            return (Weapons.Contains(GameController.Files.BaseItemTypes.Translate(itm.Item.Path).ClassName));
+        }
+
+
+        private bool isFlask(NormalInventoryItem itm)
+        {
+            List<string> Weapons = new List<string>
+            {
+                "UtilityFlask",
+                "ManaFlask",
+                "HybridFlask",
+                "LifeFlask"
+            };
+            return (Weapons.Contains(GameController.Files.BaseItemTypes.Translate(itm.Item.Path).ClassName));
+        }
+
+
+        private static Vector2 CenterPoint(RectangleF rec)
         {
             var randomized = rec.Center;
             var xOffsetMin = (int)(-1 * rec.Width / 2) + 2;
@@ -416,6 +621,22 @@ namespace AllInOne
 
             randomized.X += random.Next(xOffsetMin, xOffsetMax);
             randomized.Y += random.Next(yOffsetMin, yOffsetMax);
+
+            return randomized;
+        }
+
+        // Randomitze clicking Point for Items
+        private static Vector2 RandomizedCenterPoint(RectangleF rec)
+        {
+            var randomized = rec.Center;
+            //var xOffsetMin = (int)(-1 * rec.Width / 2) + 2;
+            //var xOffsetMax = (int)(rec.Width / 2) - 2;
+            //var yOffsetMin = (int)(-1 * rec.Height / 2) + 2;
+            //var yOffsetMax = (int)(rec.Height / 2) - 2;
+            //var random = new Random();
+
+            //randomized.X += random.Next(xOffsetMin, xOffsetMax);
+            //randomized.Y += random.Next(yOffsetMin, yOffsetMax);
 
             return randomized;
         }
