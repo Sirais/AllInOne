@@ -25,6 +25,9 @@ namespace AllInOne
     {
 
         private bool isCrafting;
+        bool useScraps = true;
+        int slots = 5;
+        int links = 5;
 
         private IngameUIElements ingameUI;
 
@@ -97,13 +100,6 @@ namespace AllInOne
             if (!Settings.Enable.Value) // Plugin enabled ?
                 return; // no, do nothing
 
-            //Triggered Hotkey routines
-            if (Settings.EnableQ40)
-                Q40Pick();
-            if (Settings.EnableCraft)
-                Craftie();
-            if (KeyboardHelper.IsKeyToggled(Settings.HotKey.Value)) // Hotkey Pressed ? 
-                KeyboardHelper.KeyPress(Settings.HotKey.Value); // release 
 
             // Automatic routines
             if (Settings.EnableILFrame)
@@ -114,18 +110,25 @@ namespace AllInOne
                 ;
             if (Settings.EnableSMSkellies)
                 ShowMySkellies();
+
+            // Interactive and triggered Stuff
+            if (Settings.HotKey.PressedOnce())
+            { 
+                //Triggered Hotkey routines
+                if (Settings.EnableQ40)
+                    Q40Pick();
+
+                if (Settings.EnableCraft)
+                    ToggleCraftie();
+            }
+            Craftie();
+
         }
 
 
         #region Q40 Pick Stuff
         private void Q40Pick()
         {
-            if (!KeyboardHelper.IsKeyToggled(Settings.HotKey.Value)) // Hotkey Pressed ? 
-                return; // No key pressed just leave
-
-            //LogMessage($"AllInOne: Hotkey ({Settings.HotKey.Value.ToString()}) toggled, Running Q40 Picker", 1);
-            //LogMessage($"Invtype {ingameUI.StashElement.VisibleStash.InvType.ToString()}", 1);
-
             if (!ingameUI.StashElement.IsVisible)
             {
                 LogMessage($"No Open Stash -> leaving ", 1);
@@ -189,11 +192,11 @@ namespace AllInOne
             {
                 RectangleF itmPos = g.CheckItem.GetClientRect();
                 KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LControlKey);
-                Thread.Sleep(100);//((int)GameController.Game.IngameState.CurLatency);
+                Thread.Sleep(50);//((int)GameController.Game.IngameState.CurLatency);
                 Mouse.SetCursorPosAndLeftClick(RandomizedCenterPoint(itmPos), GameController.Window.GetWindowRectangle().TopLeft);
-                Thread.Sleep(100);//((int)GameController.Game.IngameState.CurLatency);
+                Thread.Sleep(50);//((int)GameController.Game.IngameState.CurLatency);
                 KeyboardHelper.KeyUp(System.Windows.Forms.Keys.LControlKey);
-                Thread.Sleep(100);//((int)GameController.Game.IngameState.CurLatency);
+                Thread.Sleep(50);//((int)GameController.Game.IngameState.CurLatency);
                 Thread.Sleep(Settings.ExtraDelay);
             }
         }
@@ -283,23 +286,30 @@ namespace AllInOne
         #endregion
 
         #region Craftie stuff
-        private void Craftie()
+        private void ToggleCraftie()
         {
-            if (Settings.HotKey.PressedOnce())
-            //if (KeyboardHelper.IsKeyToggled(Settings.HotKey.Value)) // Hotkey Pressed ? 
+            if (!ingameUI.StashElement.IsVisible)
             {
-                LogMessage($"Toggle", 1);
-                if (!isCrafting) // Hotkey Toggled
-                {
-                    LogMessage($"Craftie: Hotkey currently toggled, press {Settings.HotKey.Value.ToString()} to disable.", 1);
-                    
-                }
-                //else
-                //    if (KeyboardHelper.IsKeyDown(Keys.LShiftKey))
-                //        KeyboardHelper.KeyUp(Keys.LShiftKey);
-                isCrafting = !isCrafting;
+                isCrafting = false;
+                return;
             }
+            if (((ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)))
+            {
+                return;
+            }
+    
+            LogMessage($"Toggle", 1);
+            if (!isCrafting) // Hotkey Toggled
+            {
+                isCrafting = false;
+                LogMessage($"Craftie: Hotkey currently toggled, press {Settings.HotKey.Value.ToString()} to disable.", 1);
 
+            }
+            isCrafting = !isCrafting;
+        }
+  
+        private void Craftie ()
+        { 
             if (isCrafting)
             {
                 if (!ingameUI.StashElement.IsVisible)
@@ -314,21 +324,28 @@ namespace AllInOne
                     isCrafting = false; // turn off crafting if Stash is changed!
                     return;
                 }
-                Craftinfo();
+                CraftWindow();
                 NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
                 LogMessage($"Crafting {itemToCraft.Item.ToString()}", 1);
             }
         }
 
-        private void Craftinfo()
+        private void CraftWindow()
         {
             bool windowState = true;
             System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.Position.X + ingameUI.StashElement.VisibleStash.Width,     ingameUI.StashElement.VisibleStash.Position.Y);
 
             ImGui.Begin("Craftie");// , ref windowState,ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoBringToFrontOnFocus); //| ImGuiWindowFlags.NoInputs 
+            ImGui.SetNextWindowSizeConstraints(Pos, new System.Numerics.Vector2(300, 300));
+            //ImGui.SetWindowPos(Pos);
+            //ImGui.SetWindowSize(new System.Numerics.Vector2(300, 300));
+
+
+            ImGui.Checkbox("Use Scraps", ref useScraps);
+            ImGui.SliderInt("Min Slots", ref slots, 1, 6);
+            ImGui.SliderInt("Min Links", ref links, 1, 6);
+
             if (ImGui.Button("Reload")) CraftIt();
-            ImGui.SetWindowPos(Pos);
-            ImGui.SetWindowSize(new System.Numerics.Vector2(300, 300));
             ImGui.End();
         }
 
