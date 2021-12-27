@@ -298,19 +298,17 @@ namespace AllInOne
         {
             if (!ingameUI.StashElement.IsVisible)
             {
-                isCraftingWindowVisible = false;
+                ResetAll("");
                 return;
             }
-            if (((ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)))
+            if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
             {
                 return;
             }
     
-            LogMessage($"Toggle", 1);
-            if (!isCraftingWindowVisible) // Hotkey Toggled
+            if (isCraftingWindowVisible) // Currently Crafting Window is viisible, so turn it off
             {
-                isCraftingWindowVisible = false;
-                LogMessage($"Craftie: Hotkey currently toggled, press {Settings.HotKey.Value.ToString()} to disable.", 1);
+                ResetAll($"Craftie: Hotkey currently toggled, press {Settings.HotKey.Value.ToString()} to disable.");
 
             }
             isCraftingWindowVisible = !isCraftingWindowVisible;
@@ -322,42 +320,40 @@ namespace AllInOne
             {
                 if (!ingameUI.StashElement.IsVisible)
                 {
-                    LogMessage($"No Open Stash -> leaving ", 1);
-                    isCraftingWindowVisible = false; // turn off crafting if Stash is closed!
-                    doCraft = false;
+                    ResetAll($"No Open Stash -> leaving ");
                     return;
                 }
                 if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
                 {
-                    LogMessage($"Crafing only in Curerncy Stash -> leaving", 1);
-                    isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
-                    doCraft = false;
+                    ResetAll($"Crafing only in Curerncy Stash -> leaving");
                     return;
                 }
 
                 NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
                 if (itemToCraft == null)
                 {
-                    LogMessage($"No Item To Craft -> leaving", 1);
-                    isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
-                    doCraft = false;
+                    ResetAll($"No Item To Craft -> leaving");
                     return;
                 }
 
                 if (!IsCraftable(itemToCraft))
                 {
-                    LogMessage($"Item not craftable -> leaving", 1);
-                    isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
-                    doCraft = false;
+                    ResetAll($"Item not craftable -> leaving");
                     return;
                 }
-                LogMessage($"Crafting {itemToCraft.Item.ToString()}", 1);
-
-
                 CraftWindow(itemToCraft);
                 if (doCraft)
                     CraftIt(itemToCraft);
             }
+        }
+
+        private void ResetAll (string msg)
+        {
+            LogMessage(msg, 1);
+            isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
+            if (KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey) && doCraft) // releast shift state 
+                KeyboardHelper.KeyUp(System.Windows.Forms.Keys.LShiftKey);
+            doCraft = false;
         }
 
         private void CraftWindow(NormalInventoryItem itemToCraft)
