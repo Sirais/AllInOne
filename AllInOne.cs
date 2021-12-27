@@ -72,31 +72,28 @@ namespace AllInOne
             if (ImGui.TreeNodeEx("Aura enabler", collapsingHeaderFlags))
             {
                 Settings.EnableAura.Value = ImGuiExtension.Checkbox("Enable Aura Recaster", Settings.EnableAura);
-                //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Golem recaster", collapsingHeaderFlags))
             {
                 Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Golem Recaster", Settings.EnableGolem);
-                //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
             {
                 Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame for Itemlevel (Chaos items)", Settings.EnableILFrame);
-                //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
             {
                 Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Crafting of items", Settings.EnableCraft);
+                Settings.ExtraDelay.Value = ImGuiExtension.IntSlider("extra Delay between crafting clicks", Settings.ExtraDelay.Value,1,500);
                 //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("ShowMySkellies (Dark Pact Build)", collapsingHeaderFlags))
             {
                 Settings.EnableSMSkellies.Value = ImGuiExtension.Checkbox("Enable Position and info for skellies", Settings.EnableSMSkellies);
-                //ImGui.Separator();
                 ImGui.TreePop();
             }
         }
@@ -296,6 +293,7 @@ namespace AllInOne
         #region Craftie stuff
         private void ToggleCraftie()
         {
+            LogMessage("Toggle Craftie 1", 1);
             if (!ingameUI.StashElement.IsVisible)
             {
                 ResetAll("");
@@ -303,12 +301,15 @@ namespace AllInOne
             }
             if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
             {
+                ResetAll("");
                 return;
             }
-    
+            LogMessage("Toggle Craftie 2", 1);
+
             if (isCraftingWindowVisible) // Currently Crafting Window is viisible, so turn it off
             {
-                ResetAll($"Craftie: Hotkey currently toggled, press {Settings.HotKey.Value.ToString()} to disable.");
+                ResetAll("");
+                return;
 
             }
             isCraftingWindowVisible = !isCraftingWindowVisible;
@@ -318,6 +319,7 @@ namespace AllInOne
         { 
             if (isCraftingWindowVisible)
             {
+                LogMessage($"Craftie ", 1);
                 if (!ingameUI.StashElement.IsVisible)
                 {
                     ResetAll($"No Open Stash -> leaving ");
@@ -349,15 +351,19 @@ namespace AllInOne
 
         private void ResetAll (string msg)
         {
-            LogMessage(msg, 1);
+            if (!string.IsNullOrEmpty(msg))
+                LogMessage(msg, 1); //Show info
             isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
-            if (KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey) && doCraft) // releast shift state 
+            if (KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey) && doCraft) // release shift state 
                 KeyboardHelper.KeyUp(System.Windows.Forms.Keys.LShiftKey);
-            doCraft = false;
+            doCraft = false; // crafting inactive
+            lastState = 0;
         }
 
         private void CraftWindow(NormalInventoryItem itemToCraft)
         {
+            
+            //LogMessage("CraftWindow", 1);
             System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.Position.X + ingameUI.StashElement.VisibleStash.Width,     ingameUI.StashElement.VisibleStash.Position.Y);
 
             ImGui.Begin("Craftie");
@@ -382,9 +388,13 @@ namespace AllInOne
         }
 
 
-
         public void CraftIt(NormalInventoryItem itemToCraft)
         {
+            if (!GameController.Window.IsForeground()) // ImGui makes Poe not beeing the forground Window, so make it active
+            {
+                WinApi.SetForegroundWindow(GameController.Window.Process.Handle);
+            }
+
             var x = itemToCraft;
             string orb = "";
             if (itemToCraft.Item.HasComponent<Quality>() && useScraps)
@@ -423,27 +433,31 @@ namespace AllInOne
                 NormalInventoryItem Currency = DoWeHaveCurrency(orb);
                 if (Currency != null)
                 {
-                    var currencyPos = RandomizedCenterPoint(Currency.GetClientRect());
+                    var currencyPos = CenterPoint(Currency.GetClientRect());
                     var windowOffset = GameController.Window.GetWindowRectangle().TopLeft;
-                    if (!KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey) || lastCurrency != orb) // ch: only need to klick Curreny when Shift isnt pressed or if last currenc was different
+                    switch (lastState)
                     {
-                        if (KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey)) // releast shift state first on different Currency
-                            KeyboardHelper.KeyUp(System.Windows.Forms.Keys.LShiftKey);
-                        Mouse.SetCursorPosAndRightClick(currencyPos, windowOffset, Settings.ExtraDelay.Value);
+                        case 0:
+                            KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down
+                            LogMessage("Craftit Laststate 0", 1);
+                            lastState = 1;
+                            break;
+                        case 1:
+                            Mouse.SetCursorPosAndRightClick(currencyPos, windowOffset, 10);
+                            lastState = 2;
+                            break;
+                        case 2:
+                            
+                            LogMessage("Craftit Laststate 3", 1);
+                            Mouse.SetCursorPosAndLeftClick(itemToCraft.GetClientRect().Center, windowOffset, 10);
+                            break;
                     }
-                    Thread.Sleep(50);
 
-                    if (!KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey)) // Time to hit the Shift key
-                    {
-                        lastState = 1;
-
-                        KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LShiftKey);
-                    }
-
-                    Mouse.SetCursorPosAndLeftClick(itemToCraft.GetClientRect().Center, windowOffset, Settings.ExtraDelay.Value);
+                    Thread.Sleep(Settings.ExtraDelay.Value);
                     lastCurrency = orb;
-                    Thread.Sleep(50 * 3);
                 }
+                else
+                    ResetAll($"Crafting Currency {orb} not found");
             }
         }
 
@@ -609,6 +623,13 @@ namespace AllInOne
         private static Vector2 CenterPoint(RectangleF rec)
         {
             var randomized = rec.Center;
+            return randomized;
+        }
+
+        // Randomitze clicking Point for Items
+        private static Vector2 RandomizedCenterPoint(RectangleF rec)
+        {
+            var randomized = rec.Center;
             var xOffsetMin = (int)(-1 * rec.Width / 2) + 2;
             var xOffsetMax = (int)(rec.Width / 2) - 2;
             var yOffsetMin = (int)(-1 * rec.Height / 2) + 2;
@@ -621,21 +642,6 @@ namespace AllInOne
             return randomized;
         }
 
-        // Randomitze clicking Point for Items
-        private static Vector2 RandomizedCenterPoint(RectangleF rec)
-        {
-            var randomized = rec.Center;
-            //var xOffsetMin = (int)(-1 * rec.Width / 2) + 2;
-            //var xOffsetMax = (int)(rec.Width / 2) - 2;
-            //var yOffsetMin = (int)(-1 * rec.Height / 2) + 2;
-            //var yOffsetMax = (int)(rec.Height / 2) - 2;
-            //var random = new Random();
-
-            //randomized.X += random.Next(xOffsetMin, xOffsetMax);
-            //randomized.Y += random.Next(yOffsetMin, yOffsetMax);
-
-            return randomized;
-        }
 
         #endregion
 

@@ -77,11 +77,11 @@ namespace AllInOne
 
         //plugin 
         HotKey = Keys.NumPad8;
-            MaxGemQuality = new RangeNode<int> (18, 1, 19);
-            MaxGemLevel = new RangeNode<int>(18, 1, 19);
             ExtraDelay = new RangeNode<int>(100, 1, 1000);
             UseFlask = new ToggleNode(false);
             Enable = new ToggleNode(false);
+            MaxGemQuality = new RangeNode<int>(18, 1, 19);
+            MaxGemLevel = new RangeNode<int>(18, 1, 19);
         }
     }
 }
