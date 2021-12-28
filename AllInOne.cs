@@ -65,8 +65,16 @@ namespace AllInOne
             {
                 Settings.EnableQ40.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableQ40);
                 ImGui.Separator();
+                Settings.ExtraDelayQ40.Value = ImGuiExtension.IntSlider("extra Delay between clicks", Settings.ExtraDelayQ40.Value, 1, 500);
                 Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality);
                 Settings.MaxGemLevel.Value = ImGuiExtension.IntSlider("Maximum Gem level to Sell", Settings.MaxGemLevel);
+                ImGui.TreePop();
+            }
+            if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
+            {
+                Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Crafting of items", Settings.EnableCraft);
+                Settings.ExtraDelayCraftie.Value = ImGuiExtension.IntSlider("extra Delay between crafting clicks", Settings.ExtraDelayCraftie.Value, 1, 500);
+                //ImGui.Separator();
                 ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Aura enabler", collapsingHeaderFlags))
@@ -79,21 +87,14 @@ namespace AllInOne
                 Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Golem Recaster", Settings.EnableGolem);
                 ImGui.TreePop();
             }
-            if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
-            {
-                Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame for Itemlevel (Chaos items)", Settings.EnableILFrame);
-                ImGui.TreePop();
-            }
-            if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
-            {
-                Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Crafting of items", Settings.EnableCraft);
-                Settings.ExtraDelay.Value = ImGuiExtension.IntSlider("extra Delay between crafting clicks", Settings.ExtraDelay.Value,1,500);
-                //ImGui.Separator();
-                ImGui.TreePop();
-            }
             if (ImGui.TreeNodeEx("ShowMySkellies (Dark Pact Build)", collapsingHeaderFlags))
             {
                 Settings.EnableSMSkellies.Value = ImGuiExtension.Checkbox("Enable Position and info for skellies", Settings.EnableSMSkellies);
+                ImGui.TreePop();
+            }
+            if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
+            {
+                Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame for Itemlevel (Chaos items)", Settings.EnableILFrame);
                 ImGui.TreePop();
             }
         }
@@ -104,18 +105,13 @@ namespace AllInOne
             base.Render();
             if (!Settings.Enable.Value) // Plugin enabled ?
                 return; // no, do nothing
-
-
             // Automatic routines
             if (Settings.EnableILFrame)
                 MarkILvl();
-            if (Settings.EnableAura)
-                ;
-            if (Settings.EnableGolem)
-                ;
+            if (Settings.EnableAura);
+            if (Settings.EnableGolem) ;
             if (Settings.EnableSMSkellies)
                 ShowMySkellies();
-
             // Interactive and triggered Stuff
             if (Settings.HotKey.PressedOnce())
             { 
@@ -127,7 +123,6 @@ namespace AllInOne
                     ToggleCraftie();
             }
             Craftie();
-
         }
 
 
@@ -197,12 +192,12 @@ namespace AllInOne
             {
                 RectangleF itmPos = g.CheckItem.GetClientRect();
                 KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LControlKey);
-                Thread.Sleep(50);//((int)GameController.Game.IngameState.CurLatency);
+                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
                 Mouse.SetCursorPosAndLeftClick(RandomizedCenterPoint(itmPos), GameController.Window.GetWindowRectangle().TopLeft);
-                Thread.Sleep(50);//((int)GameController.Game.IngameState.CurLatency);
+                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
                 KeyboardHelper.KeyUp(System.Windows.Forms.Keys.LControlKey);
-                Thread.Sleep(50);//((int)GameController.Game.IngameState.CurLatency);
-                Thread.Sleep(Settings.ExtraDelay);
+                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
+                Thread.Sleep(Settings.ExtraDelayQ40);
             }
         }
 
@@ -293,7 +288,7 @@ namespace AllInOne
         #region Craftie stuff
         private void ToggleCraftie()
         {
-            LogMessage("Toggle Craftie 1", 1);
+            LogMessage("Toggle Craftie", 1);
             if (!ingameUI.StashElement.IsVisible)
             {
                 ResetAll("");
@@ -304,8 +299,6 @@ namespace AllInOne
                 ResetAll("");
                 return;
             }
-            LogMessage("Toggle Craftie 2", 1);
-
             if (isCraftingWindowVisible) // Currently Crafting Window is viisible, so turn it off
             {
                 ResetAll("");
@@ -319,7 +312,6 @@ namespace AllInOne
         { 
             if (isCraftingWindowVisible)
             {
-                LogMessage($"Craftie ", 1);
                 if (!ingameUI.StashElement.IsVisible)
                 {
                     ResetAll($"No Open Stash -> leaving ");
@@ -359,6 +351,10 @@ namespace AllInOne
             doCraft = false; // crafting inactive
             lastState = 0;
         }
+        private void ResetAll()
+        {
+            ResetAll("");
+        }
 
         private void CraftWindow(NormalInventoryItem itemToCraft)
         {
@@ -387,12 +383,20 @@ namespace AllInOne
             ImGui.End();
         }
 
-
         public void CraftIt(NormalInventoryItem itemToCraft)
         {
-            if (!GameController.Window.IsForeground()) // ImGui makes Poe not beeing the forground Window, so make it active
+            int cnt = 0;
+            while (!GameController.Window.IsForeground()) // ImGui makes Poe not beeing the forground Window, so make it active
             {
-                WinApi.SetForegroundWindow(GameController.Window.Process.Handle);
+                LogMessage($"activating Poe {cnt}");
+                WinApi.SetForegroundWindow(GameController.Window.Process.MainWindowHandle);
+                Thread.Sleep(100);
+                cnt++;
+                if (cnt>20)
+                {
+                    ResetAll("");
+                    return;
+                }
             }
 
             var x = itemToCraft;
@@ -437,23 +441,24 @@ namespace AllInOne
                     var windowOffset = GameController.Window.GetWindowRectangle().TopLeft;
                     switch (lastState)
                     {
-                        case 0:
+                        case 0: // Rightklick crafting currency
+                            //Mouse.SetCursorPosAndRightClick(currencyPos, windowOffset, 10);
+                            Mouse.SetCursorPosAndLeftClick(currencyPos, windowOffset);//, 10);
+                            lastState = 1;
+                            ResetAll();
+                            break;
+                        case 1: // Press shift key
                             KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down
                             LogMessage("Craftit Laststate 0", 1);
-                            lastState = 1;
-                            break;
-                        case 1:
-                            Mouse.SetCursorPosAndRightClick(currencyPos, windowOffset, 10);
                             lastState = 2;
                             break;
-                        case 2:
-                            
+                        case 2: // Leftklick Crafting item
                             LogMessage("Craftit Laststate 3", 1);
                             Mouse.SetCursorPosAndLeftClick(itemToCraft.GetClientRect().Center, windowOffset, 10);
                             break;
                     }
 
-                    Thread.Sleep(Settings.ExtraDelay.Value);
+                    Thread.Sleep(Settings.ExtraDelayCraftie.Value);
                     lastCurrency = orb;
                 }
                 else

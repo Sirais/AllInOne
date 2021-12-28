@@ -39,8 +39,8 @@ namespace AllInOne
         [Menu("Use Flasks instead of Gems")]
         public ToggleNode UseFlask { get; set; }
 
-        [Menu("Extra Delay between Pickup Klicks")]
-        public RangeNode<int> ExtraDelay { get; set; }
+        [Menu("Extra Delay between Pickup Klicks Q40 Picker")]
+        public RangeNode<int> ExtraDelayQ40 { get; set; }
 
         [Menu("Enable Aura Activator ")]
         public ToggleNode EnableAura { get; set; }
@@ -58,6 +58,9 @@ namespace AllInOne
 
         [Menu("Enable Craftie")]
         public ToggleNode EnableCraft { get; set; }
+
+        [Menu("Extra Delay between Pickup Klicks Craftie")]
+        public RangeNode<int> ExtraDelayCraftie { get; set; }
 
 
         public AllInOneSettings()
@@ -77,7 +80,8 @@ namespace AllInOne
 
         //plugin 
         HotKey = Keys.NumPad8;
-            ExtraDelay = new RangeNode<int>(100, 1, 1000);
+            ExtraDelayQ40 = new RangeNode<int>(100, 1, 1000);
+            ExtraDelayCraftie = new RangeNode<int>(100, 1, 1000);
             UseFlask = new ToggleNode(false);
             Enable = new ToggleNode(false);
             MaxGemQuality = new RangeNode<int>(18, 1, 19);
