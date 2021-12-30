@@ -28,7 +28,6 @@ namespace AllInOne
 
         private bool isCraftingWindowVisible;
         private bool doCraft;
-        bool useScraps = true;
         int sockets = 5;
         int links = 5;
         private string lastCurrency;
@@ -367,9 +366,11 @@ namespace AllInOne
 
             ImGui.TextColored(Color.Yellow.ToImguiVec4(), GameController.Files.BaseItemTypes.Translate(itemToCraft.Item.Path).ClassName);
 
-            ImGui.Checkbox("Use Scraps", ref useScraps);
-            ImGui.SliderInt("Min Slots", ref sockets, 0, 6);
-            ImGui.SliderInt("Min Links", ref links, 0, 6);
+            Settings.useScraps.Value = ImGuiExtension.Checkbox("Use Scraps", Settings.useScraps);
+            Settings.useJewellers.Value = ImGuiExtension.Checkbox("Use Jewellers", Settings.useJewellers);
+            Settings.minSlots.Value = ImGuiExtension.IntSlider("minimum Slots", Settings.minSlots.Value, 1, 6);
+            Settings.useFusings.Value = ImGuiExtension.Checkbox("Use Fusings", Settings.useFusings);
+            Settings.minLinks.Value = ImGuiExtension.IntSlider("minimum Links", Settings.minLinks.Value, 1, 6);
 
             
             if (doCraft)
@@ -385,23 +386,10 @@ namespace AllInOne
 
         public void CraftIt(NormalInventoryItem itemToCraft)
         {
-            int cnt = 0;
-            while (!GameController.Window.IsForeground()) // ImGui makes Poe not beeing the forground Window, so make it active
-            {
-                LogMessage($"activating Poe {cnt}");
-                WinApi.SetForegroundWindow(GameController.Window.Process.MainWindowHandle);
-                Thread.Sleep(100);
-                cnt++;
-                if (cnt>20)
-                {
-                    ResetAll("");
-                    return;
-                }
-            }
-
+            if (!BringToFront()) return;
             var x = itemToCraft;
             string orb = "";
-            if (itemToCraft.Item.HasComponent<Quality>() && useScraps)
+            if (itemToCraft.Item.HasComponent<Quality>() && Settings.useScraps)
             {
                 Quality comp = itemToCraft.Item.GetComponent<Quality>();
                 if (comp.ItemQuality < 20)
@@ -422,16 +410,26 @@ namespace AllInOne
                     }
 
             }
+            else if (itemToCraft.Item.HasComponent<Quality>() && Settings.useJewellers)
+            {
 
-            //if (itemToCraft.Item.HasComponent<Sockets>() && sockets>0)
-            //{
+            }
+            else if(itemToCraft.Item.HasComponent<Quality>() && Settings.useFusings)
+            {
 
-            //}
-            //if (itemToCraft.Item.GetComponent<Sockets>)
-            //{
+            }
 
-            //}
+            OrbCrafting(orb,itemToCraft);
+        }
 
+
+        /// <summary>
+        /// Activates the Orb to craft and klicks on the Craftingitem;
+        /// </summary>
+        /// <param name="orb"></param>
+        /// <param name="itemToCraft"></param>
+        private void OrbCrafting(string orb, NormalInventoryItem itemToCraft)
+        {
             if (orb != "")
             {
                 NormalInventoryItem Currency = DoWeHaveCurrency(orb);
@@ -442,19 +440,20 @@ namespace AllInOne
                     switch (lastState)
                     {
                         case 0: // Rightklick crafting currency
-                            //Mouse.SetCursorPosAndRightClick(currencyPos, windowOffset, 10);
-                            Mouse.SetCursorPosAndLeftClick(currencyPos, windowOffset);//, 10);
+                            Mouse.SetCursorPosAndRightClick(currencyPos, windowOffset, 10);
+                            //Mouse.SetCursorPosAndLeftClick(currencyPos, windowOffset); // test : remove !
+                            LogMessage("Craftit Laststate 1", 1);
                             lastState = 1;
-                            ResetAll();
+                            //ResetAll(); // test : remove !
                             break;
                         case 1: // Press shift key
-                            KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down
-                            LogMessage("Craftit Laststate 0", 1);
+                            KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down for continous clicks
+                            LogMessage("Craftit Laststate 1", 1);
                             lastState = 2;
                             break;
                         case 2: // Leftklick Crafting item
-                            LogMessage("Craftit Laststate 3", 1);
-                            Mouse.SetCursorPosAndLeftClick(itemToCraft.GetClientRect().Center, windowOffset, 10);
+                            LogMessage("Craftit Laststate 2", 1);
+                            Mouse.SetCursorPosAndLeftClick(itemToCraft.GetClientRect().Center, windowOffset);
                             break;
                     }
 
@@ -466,6 +465,24 @@ namespace AllInOne
             }
         }
 
+
+        private bool BringToFront()
+        {
+            int cnt = 0;
+            while (!GameController.Window.IsForeground()) // ImGui makes Poe not beeing the forground Window, so make it active
+            {
+                LogMessage($"activating Poe {cnt}");
+                WinApi.SetForegroundWindow(GameController.Window.Process.MainWindowHandle);
+                Thread.Sleep(100);
+                cnt++;
+                if (cnt > 20)
+                {
+                    ResetAll("");
+                    return false;
+                }
+            }
+            return true;
+        }
         private void CraftWithCurrency (NormalInventoryItem itemToCraft, NormalInventoryItem currency)
         {
             LogMessage($"Using {currency}", 1);

@@ -59,6 +59,14 @@ namespace AllInOne
         [Menu("Enable Craftie")]
         public ToggleNode EnableCraft { get; set; }
 
+        public ToggleNode useScraps { get; set; }
+
+        public ToggleNode useJewellers { get; set; }
+        public RangeNode<int> minSlots { get; set; }
+
+        public ToggleNode useFusings { get; set; }
+        public RangeNode<int> minLinks { get; set; }
+
         [Menu("Extra Delay between Pickup Klicks Craftie")]
         public RangeNode<int> ExtraDelayCraftie { get; set; }
 
