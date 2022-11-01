@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Druzil.Poe.Libs;
 using ExileCore;
+using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.Elements;
 using ExileCore.PoEMemory.Elements.InventoryElements;
@@ -16,28 +17,51 @@ using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
 using ImGuiNET;
 using TreeRoutine.Menu;
-
+using System.Globalization;
+using System.Linq;
+using ExileCore.Shared.AtlasHelper;
+using System.Collections;
+using AllInOne.Misc;
 
 //Todo : Shift state der tastatur beim schließen zurücksetzten, ausschalten crafting mit F8 
 
 
 namespace AllInOne
 {
+
+    public enum Routines
+    {
+        Q40Pick = 1,
+        Craftie = 2,
+        ResoSplit = 3
+    }
+
+
+
     internal class AllInOne : BaseSettingsPlugin<AllInOneSettings>
     {
-
         private bool isCraftingWindowVisible;
         private bool doCraft;
         int sockets = 5;
         int links = 5;
         private string lastCurrency;
         private int lastState = 0;
+        private DateTime timer;
+        
 
         private IngameUIElements ingameUI;
 
 
+        public AllInOne()
+        {
+
+        }
+
         public override void OnLoad()
         {
+            //Load Graphics for Delve Walls 
+            Graphics.InitImage("directions.png");
+            Graphics.InitImage("Icons.png");
         }
 
         public override bool Initialise()
@@ -58,46 +82,63 @@ namespace AllInOne
         {
             ImGuiTreeNodeFlags collapsingHeaderFlags = ImGuiTreeNodeFlags.CollapsingHeader;
 
-            Settings.HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.HotKey);
-
+//            ImGui.PushStyleColor(ImGuiCol.Header,Color.Green.ToImguiVec4());
             if (ImGui.TreeNodeEx("Q40 Picker", collapsingHeaderFlags))
             {
                 Settings.EnableQ40.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableQ40);
+                Settings.Q40HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.Q40HotKey.Value);
                 ImGui.Separator();
                 Settings.ExtraDelayQ40.Value = ImGuiExtension.IntSlider("extra Delay between clicks", Settings.ExtraDelayQ40.Value, 1, 500);
-                Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality);
-                Settings.MaxGemLevel.Value = ImGuiExtension.IntSlider("Maximum Gem level to Sell", Settings.MaxGemLevel);
-                ImGui.TreePop();
+                Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality.Value,1,20);
+                Settings.MaxGemLevel.Value = ImGuiExtension.IntSlider("Maximum Gem level to Sell", Settings.MaxGemLevel.Value, 1, 20);
             }
             if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
             {
                 Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Crafting of items", Settings.EnableCraft);
-                Settings.ExtraDelayCraftie.Value = ImGuiExtension.IntSlider("extra Delay between crafting clicks", Settings.ExtraDelayCraftie.Value, 1, 500);
-                //ImGui.Separator();
-                ImGui.TreePop();
+                Settings.CraftHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.CraftHotKey.Value);
+                Settings.ExtraDelayCraftie.Value = ImGuiExtension.IntSlider("extra Delay between crafting clicks", Settings.ExtraDelayCraftie.Value, 1, 2000);
+                ImGui.Separator();
+                Settings.useScraps.Value = ImGuiExtension.Checkbox("Use Scraps", Settings.useScraps);
+                Settings.useJewellers.Value = ImGuiExtension.Checkbox("Use Jewellers", Settings.useJewellers);
+                Settings.minSlots.Value = ImGuiExtension.IntSlider("minimum Slots", Settings.minSlots);
+                Settings.useFusings.Value = ImGuiExtension.Checkbox("Use Fusings", Settings.useFusings);
+                Settings.minLinks.Value = ImGuiExtension.IntSlider("minimum Links", Settings.minLinks);
             }
+            if (ImGui.TreeNodeEx("Delve Walls", collapsingHeaderFlags))
+            {
+                Settings.EnableDelve.Value = ImGuiExtension.Checkbox("Enable Delve Walls", Settings.EnableDelve);
+                Settings.DelveMaxRange.Value = ImGuiExtension.IntSlider("Maximum Distance", Settings.DelveMaxRange);
+            }
+
+            //if (ImGui.TreeNodeEx("Resonator Splitter", collapsingHeaderFlags))
+            //{
+            //    Settings.EnableDelve.Value = ImGuiExtension.Checkbox("Enable Delve Walls", Settings.EnableDelve);
+            //    Settings.DelveMaxRange.Value = ImGuiExtension.IntSlider("Maximum Distance", Settings.DelveMaxRange);
+            //}
+
+            if (ImGui.TreeNodeEx("Resonator Splitter", collapsingHeaderFlags))
+            {
+                Settings.EnableResoSplit.Value = ImGuiExtension.Checkbox("Enable Resonator Splitter", Settings.EnableResoSplit);
+                Settings.ResoHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.ResoHotKey.Value);
+            }
+
             if (ImGui.TreeNodeEx("Aura enabler", collapsingHeaderFlags))
             {
                 Settings.EnableAura.Value = ImGuiExtension.Checkbox("Enable Aura Recaster", Settings.EnableAura);
-                ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Golem recaster", collapsingHeaderFlags))
             {
                 Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Golem Recaster", Settings.EnableGolem);
-                ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("ShowMySkellies (Dark Pact Build)", collapsingHeaderFlags))
             {
                 Settings.EnableSMSkellies.Value = ImGuiExtension.Checkbox("Enable Position and info for skellies", Settings.EnableSMSkellies);
-                ImGui.TreePop();
             }
             if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
             {
                 Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame for Itemlevel (Chaos items)", Settings.EnableILFrame);
-                ImGui.TreePop();
             }
         }
-
 
         public override void Render()
         {
@@ -107,62 +148,138 @@ namespace AllInOne
             // Automatic routines
             if (Settings.EnableILFrame)
                 MarkILvl();
+            if (Settings.EnableDelve)
+                DelveWalls();
             if (Settings.EnableAura);
             if (Settings.EnableGolem) ;
             if (Settings.EnableSMSkellies)
                 ShowMySkellies();
             // Interactive and triggered Stuff
-            if (Settings.HotKey.PressedOnce())
-            { 
-                //Triggered Hotkey routines
-                if (Settings.EnableQ40)
-                    Q40Pick();
-
+            //if (Settings.Q40HotKey.PressedOnce())
+            //{
+            //    //Triggered Hotkey routines
+            //    if (Settings.EnableQ40)
+            //        Q40Pick();
+            //}
+            if (Settings.CraftHotKey.PressedOnce())
+            {
                 if (Settings.EnableCraft)
-                    ToggleCraftie();
+                ToggleCraftie();
             }
-            Craftie();
+            if (Settings.ResoHotKey.PressedOnce())
+            {
+                if (Settings.EnableResoSplit)
+                    Resosplitter();
+            }
+            if (doCraft)
+                Craftie();
+        }
+
+        public override Job Tick()
+            {
+            if (Settings.Q40HotKey.PressedOnce())
+            {
+                if (Core.ParallelRunner.FindByName(Routines.Q40Pick.ToString()) == null)
+                {
+                    StartCoroutine(Routines.Q40Pick);
+                }
+                else
+                {
+                    StopCoroutine(Name);
+                }
+            }
+            return null;
+        }
+
+        private void StartCoroutine(Routines routine)
+        {
+            switch (routine)
+            {
+                case Routines.Q40Pick:
+                    Core.ParallelRunner.Run(new Coroutine(PickupQ40Routine(), this, Routines.Q40Pick.ToString()));
+                    break;
+                case Routines.ResoSplit:
+                    Core.ParallelRunner.Run(new Coroutine(PickupQ40Routine(), this, Routines.Q40Pick.ToString()));
+                    break;
+
+                //case Routines.Craftie:
+                //    Core.ParallelRunner.Run(new Coroutine(TurnInDivCardsRoutine(), this, "TurnInDivCards"));
+                //    break;
+            }
+        }
+
+        private void StopCoroutine(string routineName)
+        {
+            var routine = Core.ParallelRunner.FindByName(routineName);
+            routine?.Done();
         }
 
 
         #region Q40 Pick Stuff
-        private void Q40Pick()
+
+        private IEnumerator PickupQ40Routine()
         {
-            if (!ingameUI.StashElement.IsVisible)
+            if (!Q40canStart())
             {
-                LogMessage($"No Open Stash -> leaving ", 1);
-                return;
-            }
-            if (((ingameUI.StashElement.VisibleStash.InvType != InventoryType.NormalStash) &&
-                (ingameUI.StashElement.VisibleStash.InvType != InventoryType.QuadStash)))
-            {
-                LogMessage($"No Normal or Quad Stash Open  -> leaving Q40", 1);
-                return;
+                StopCoroutine("Q40Pick");
+                yield break;
             }
 
-            KeyboardHelper.KeyPress(Settings.HotKey.Value); // send the hotkey back to the system to turn off the Work
-
+            //KeyboardHelper.KeyPress(Settings.Q40HotKey.Value); // send the hotkey back to the system to turn off the Work
             List<setData> hits;
             hits = getQualityType("Skill Gem"); // Try to find gems
             if (hits == null || hits.Count == 0)
                 hits = getQualityType("Flask"); //No gems so try flasks
-            if (hits == null || hits.Count == 0)
+            if (hits != null && hits.Count > 0)
             {
-                LogMessage("No Quality Items found ", 1);
-                return;
+                LogMessage($"AllInOne: Q40 found  {hits.Count} Quality Items in open stash.", 1);
+                SetFinder Sets = new SetFinder(hits, 40);
+                if (Sets.BestSet == null)
+                {
+                    LogMessage("Added Quality is not 40", 1);
+                    StopCoroutine("Q40Pick");
+                    yield break;
+                }
+                yield return Q40pickup(Sets);
             }
-            LogMessage($"AllInOne: Q40 found  {hits.Count} Quality Items in open stash.", 1);
+            StopCoroutine(Routines.Q40Pick.ToString());
+        }
 
-            SetFinder Sets = new SetFinder(hits, 40);
-
-            if (Sets.BestSet == null)
+        /// <summary>
+        /// Pickup found Items into main inventory 
+        /// </summary>
+        /// <param name="Sets"></param>
+        private IEnumerator Q40pickup(SetFinder Sets)
+        {
+            foreach (QualityItem g in Sets.BestSet.Values)
             {
-                LogMessage("Added Quality is not 40", 1);
-                return;
+                RectangleF itmPos = g.CheckItem.GetClientRect();
+                Input.KeyDown(System.Windows.Forms.Keys.LControlKey);
+                Input.SetCursorPositionAndClick(g.CheckItem.GetClientRect().Center);
+                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
+                Input.KeyUp(System.Windows.Forms.Keys.LControlKey);
+                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
+                Thread.Sleep(Settings.ExtraDelayQ40);
             }
+            yield break;
+        }
 
-            pickup(Sets);
-
+        private bool Q40canStart()
+        {
+            if (!ingameUI.StashElement.IsVisible && !ingameUI.SellWindow.IsVisible)
+            {
+                LogMessage($"No Open Stash  and no Trade Window -> leaving ", 1);
+                return false;
+            }
+            if (ingameUI.StashElement.IsVisible &&
+                (ingameUI.StashElement.VisibleStash.InvType != InventoryType.NormalStash) &&
+                (ingameUI.StashElement.VisibleStash.InvType != InventoryType.QuadStash)
+                )
+            {
+                LogMessage($"No Normal or Quad Stash Open  -> leaving Q40", 1);
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -181,41 +298,30 @@ namespace AllInOne
             }
         }
 
-        /// <summary>
-        /// Pickup found Items into main inventory 
-        /// </summary>
-        /// <param name="Sets"></param>
-        private void pickup(SetFinder Sets)
-        {
-            foreach (QualityItem g in Sets.BestSet.Values)
-            {
-                RectangleF itmPos = g.CheckItem.GetClientRect();
-                KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LControlKey);
-                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
-                Mouse.SetCursorPosAndLeftClick(RandomizedCenterPoint(itmPos), GameController.Window.GetWindowRectangle().TopLeft);
-                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
-                KeyboardHelper.KeyUp(System.Windows.Forms.Keys.LControlKey);
-                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
-                Thread.Sleep(Settings.ExtraDelayQ40);
-            }
-        }
-
         /// <summary>inventory
         /// "Skill Gem"
         /// </summary>
         /// <returns></returns>
         private List<setData> getQualityType(string itemtype)
         {
+            LogMessage($"Chcking Quality items");
             List<setData> res = new List<setData>();
             var stashPanel = ingameUI.StashElement;
-            if (!stashPanel.IsVisible)
+            if (!ingameUI.StashElement.IsVisible && !ingameUI.SellWindow.IsVisible)
                 return null;
-            var visibleStash = stashPanel.VisibleStash;
-            if (visibleStash == null)
-                return null;
-            IList<NormalInventoryItem> inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
+            //var visibleStash = ingameUI.StashElement.VisibleStash;
+            //if (visibleStash == null )
+            //    return null;
+            IList<NormalInventoryItem> inventoryItems = null;
+            if (ingameUI.StashElement.IsVisible)
+                inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
+            else if (ingameUI.InventoryPanel.IsVisible)
+                inventoryItems = ingameUI.InventoryPanel[InventoryIndex.PlayerInventory].VisibleInventoryItems;
+            LogMessage($"testing {inventoryItems.Count} items");
             if (inventoryItems != null)
-            { 
+            {
+                //LogMessage($"items in Stash {ingameUI.StashElement.VisibleStash.VisibleInventoryItems.ToString()}: {inventoryItems.Count}", 10);
+                int cnt = 1;
                 foreach (NormalInventoryItem item in inventoryItems)
                 {
                     BaseItemType baseItemType = GameController.Files.BaseItemTypes.Translate(item.Item.Path);
@@ -223,13 +329,153 @@ namespace AllInOne
                     if (baseItemType.ClassName.Contains(itemtype))
                     {
                         int Quality = item.Item.GetComponent<Quality>().ItemQuality;
+                        //LogMessage($"item {cnt} : Quality = {Quality}",10);
                         if (Quality > 0)
                             if (Quality <= Settings.MaxGemQuality)
                                 res.Add(new QualityItem(item, Quality));
+                        cnt++;
                     }
                 }
             }
             return res;
+        }
+
+
+
+        #endregion
+
+        #region Resonator Splitter
+
+        private IEnumerator ResosplitterRoutine()
+        {
+            LogMessage("Resonator Splitter", 101);
+            if (!ingameUI.InventoryPanel.IsVisible)
+            {
+                ResetAll("Inventory not open");
+                yield break;
+            }
+            NormalInventoryItem reso = HasResonators();
+            if (reso != null)
+            {
+                LogMessage("Found resonator", 101);
+                SplitResonator(reso);
+            }
+            StopCoroutine(Routines.ResoSplit.ToString());
+        }
+
+        private void Resosplitter()
+        {
+            LogMessage("Resonator Splitter", 101);
+            if (!ingameUI.InventoryPanel.IsVisible)
+            {
+                ResetAll("Inventory not open");
+                return;
+            }
+            NormalInventoryItem reso = HasResonators();
+            if (reso != null)
+            {
+                LogMessage("Found resonator", 101);
+                SplitResonator(reso);
+            }
+
+            //if (GameController.IngameState.ServerData.PlayerInventories[0].Inventory.Items.Where(x => x.Path == "Metadata/Items/DivinationCards/DivinationCardDeck").Count() < 0;
+        }
+
+        private void SplitResonator(NormalInventoryItem item)
+        {
+            Vector2 freeslot = new Vector2();
+            if (GetNextFreeSlot(ref freeslot))
+            {
+                var windowOffset = GameController.Window.GetWindowRectangle().TopLeft;
+                var pos = CenterPoint(item.GetClientRect());
+                Input.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down for continous clicks
+                Thread.Sleep(20);
+                Input.SetCursorPositionAndClick(item.GetClientRect().Center);
+                Thread.Sleep(20);
+                Input.KeyPress(System.Windows.Forms.Keys.Return);
+                Thread.Sleep(40);
+                Input.KeyUp(System.Windows.Forms.Keys.LShiftKey); // Release Shift 
+                //Thread.Sleep(20);
+                //Mouse.SetCursorPosAndLeftClick(freeslot, windowOffset);
+            }
+
+
+        }
+
+        private bool GetNextFreeSlot(ref Vector2 pos)
+        {
+            LogMessage("Checking open Slots", 101);
+            //ServerInventory 
+            Point openSlotPos = Point.Zero;
+            IEnumerable<ServerInventory.InventSlotItem> playerInventory = GameController.Game.IngameState.ServerData.PlayerInventories[0].Inventory.InventorySlotItems;
+            var slots = GetInventoryLayout(playerInventory); /// Read all inventroryslots
+            LogMessage("slots:" + playerInventory.Count().ToString(), 101);
+            LogMessage(slots.Print(ref openSlotPos));
+            if (!slots.GetNextOpenSlot(ref openSlotPos)) // is there a free slot for the item ? 
+            {
+                pos= CenterPoint(GetClientRectFromPoint(openSlotPos, 1, 1));
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Fills an Array with 1 (used by an item) or 0 (free)
+        /// Found this in Plugin UnstackDecks and didnt have to reinvent. Thanks to the Creator
+        /// </summary>
+        /// <param name="slots"></param>
+        /// <returns></returns>
+        private static int[,] GetInventoryLayout(IEnumerable<ServerInventory.InventSlotItem> slots)
+        {
+            
+            var inventorySlots = new[,]
+            {
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+            };
+
+            foreach (var slot in slots)
+            {
+                inventorySlots.Fill(1, slot.PosX, slot.PosY, slot.SizeX, slot.SizeY);
+            }
+
+            return inventorySlots;
+        }
+
+        private RectangleF GetClientRectFromPoint(Point pos, int width, int height)
+        {
+            var inv = GameController.Game.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory].GetClientRect();
+            var Size = inv.Width / GameController.Game.IngameState.ServerData.PlayerInventories[0].Inventory.Columns;
+            return new RectangleF(
+                inv.X + pos.X + Size * pos.X,
+                inv.Y + pos.Y + Size * pos.Y,
+                pos.X + width * Size,
+                pos.Y + height * Size);
+        }
+
+
+        private NormalInventoryItem HasResonators()
+        {
+            NormalInventoryItem found = null;
+            IList<NormalInventoryItem> items = ingameUI.InventoryPanel[InventoryIndex.PlayerInventory].VisibleInventoryItems;
+            int cnt = 0;
+            while (found == null && cnt < items.Count())
+            {
+                NormalInventoryItem item = items[cnt];
+                if (GameController.Files.BaseItemTypes.Translate(item.Item.Path).BaseName.Contains("Resonator"))
+                {
+                    var stacksize = item.Item.GetComponent<ExileCore.PoEMemory.Components.Stack>()?.Size ?? 0;
+                    //ExileCore.PoEMemory.Components.Stack stack = item.Item?.GetComponent<ExileCore.PoEMemory.Components.Stack>();
+                    //if (stack != null && stack.Size > 1)
+                    if (stacksize>1)
+                        found = item;
+                }
+                cnt++;
+            }
+            return found;
         }
 
         #endregion
@@ -284,77 +530,215 @@ namespace AllInOne
 
         #endregion
 
+        #region Delvewalls
+        public void DelveWalls()
+        {
+            if (!GameController.InGame)
+                return;
+            if (GameController.Area.CurrentArea.IsTown)
+                return;
+            if (GameController.Area.CurrentArea.IsHideout)
+                return;
+            if (GameController.IsLoading)
+                return;
+            if (ingameUI.StashElement.IsVisible)
+                return;
+            if (ingameUI.InventoryPanel.IsVisible)
+                return;
+            if (ingameUI.OpenLeftPanel.IsVisible)
+                return;
+            if (ingameUI.OpenRightPanel.IsVisible)
+                return;
+            if (ingameUI.DelveWindow.IsVisible) //Talking to niko in HO opens the map too, so not only in Mine 
+                Showgrid();
+            if (!GameController.Area.CurrentArea.Name.Contains("Azurite Mine")) // Not in Mine /no need to check Hidden walls
+                return;
+            ShowWalls();
+        }
+
+        /// <summary>
+        /// Draw the Mine Grid.
+        /// Maybe one day i find out about nodes and crap. Stupid to keep it that secret. 
+        /// </summary>
+        private void Showgrid()
+        {
+            SubterraneanChart Mine = GameController.Game.IngameState.IngameUi.DelveWindow;
+            int c = 0;
+            RectangleF connection_area = RectangleF.Empty;
+            foreach (DelveBigCell BCell in Mine.GridElement.Cells)
+            {
+                foreach (DelveCell cell in BCell.Cells)
+                {
+                    RectangleF rec = cell.GetClientRect();
+                    Mine.GetClientRect().Contains(ref rec, out var contains);
+                    if (contains)
+                    {
+                        Graphics.DrawFrame(cell.GetClientRect(), Color.DarkGray, 1);
+                        //LogMessage($"Minesrtext[{c}]={ cell.MinesText}", 1, Color.AliceBlue);
+                        //LogMessage($"Type[{c}]={ cell.Type}");
+                        //LogMessage($"Typehuman[{c}]={ cell.TypeHuman}");
+
+                        foreach (var connection in cell.Children)
+                        {
+                            int width = (int)connection.Width;
+                            if ((width == 10 || width == 4))
+                                Graphics.DrawFrame(connection.GetClientRect(), Color.LightGreen, 1);
+                        }
+                        c++;
+                    }
+                }
+            }
+        }
+
+        private void ShowWalls()
+        {
+            var entites = GameController.Entities;
+            foreach (Entity e in entites)
+            {
+                if (e.Path.Contains("DelveWall"))
+                    wall(e);
+            }
+        }
+
+        /// <summary>
+        /// Draw Direktion of breakable walls depending on Distance
+        /// </summary>
+        /// <param name="e"></param>
+        public void wall(Entity e)
+        {
+            if (e.IsAlive)
+            {
+
+                Vector2 delta = e.GridPos - GameController.Player.GridPos;
+                double phi;
+                double distance = delta.GetPolarCoordinates(out phi);
+                if (distance > Settings.DelveMaxRange) 
+                    return;
+                RectangleF Dir = MathHepler.GetDirectionsUV(phi, distance);
+                RectangleF rect = GameController.Window.GetWindowRectangle();
+                Vector2 center = new Vector2(rect.X + rect.Width / 2, rect.Height - 10);
+                center = GameController.Game.IngameState.Camera.WorldToScreen(GameController.Player.Pos);
+                RectangleF rectDirection = new RectangleF(center.X - 20, center.Y - 40, 40, 40);
+                Graphics.DrawImage("directions.png", rectDirection, Dir, Color.LightGreen);
+            }
+        }
+
+        #endregion
+
         #region Craftie stuff
+
+        /// <summary>
+        /// 
+        /// </summary>
         private void ToggleCraftie()
         {
-            LogMessage("Toggle Craftie", 1);
             if (!ingameUI.StashElement.IsVisible)
             {
-                ResetAll("");
+                ResetAll("stash not open");
                 return;
             }
             if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
             {
-                ResetAll("");
+                ResetAll("Currency Stash not open");
                 return;
             }
-            if (isCraftingWindowVisible) // Currently Crafting Window is viisible, so turn it off
-            {
-                ResetAll("");
-                return;
+            //if (isCraftingWindowVisible) // Currently Crafting Window is viisible, so turn it off
+            //{
+            //    ResetAll("");
+            //    return;
 
+            //}
+            doCraft = !doCraft;
+            if (doCraft)
+            {
+                timer = DateTime.Now;
+                lastState = 0;
             }
-            isCraftingWindowVisible = !isCraftingWindowVisible;
+            
+            //LogMessage($"Toggle Craftie. Current State = {doCraft.ToString()}", 1);
+            //isCraftingWindowVisible = !isCraftingWindowVisible; // interactive Window doesnt work at all, so activating via hotkey
         }
-  
+
+        /// <summary>
+        /// 
+        /// </summary>
         private void Craftie ()
-        { 
-            if (isCraftingWindowVisible)
+        {
+            //LogMessage($"CraftieState = {doCraft.ToString()}", 1);
+            //if (isCraftingWindowVisible)
+            //{
+            //    if (!ingameUI.StashElement.IsVisible)
+            //    {
+            //        ResetAll($"No Open Stash -> leaving ");
+            //        return;
+            //    }
+            //    if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
+            //    {
+            //        ResetAll($"Crafing only in Curerncy Stash -> leaving");
+            //        return;
+            //    }
+
+            if (!ingameUI.StashElement.IsVisible)
             {
-                if (!ingameUI.StashElement.IsVisible)
-                {
-                    ResetAll($"No Open Stash -> leaving ");
-                    return;
-                }
-                if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
-                {
-                    ResetAll($"Crafing only in Curerncy Stash -> leaving");
-                    return;
-                }
-
-                NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
-                if (itemToCraft == null)
-                {
-                    ResetAll($"No Item To Craft -> leaving");
-                    return;
-                }
-
-                if (!IsCraftable(itemToCraft))
-                {
-                    ResetAll($"Item not craftable -> leaving");
-                    return;
-                }
-                CraftWindow(itemToCraft);
-                if (doCraft)
-                    CraftIt(itemToCraft);
+                ResetAll("stash not open");
+                return;
             }
+            if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
+            {
+                ResetAll("Currency Stash not open");
+                return;
+            }
+            NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
+            LogMessage($"item to Craft : {GameController.Files.BaseItemTypes.Translate(itemToCraft.Item.Path).ClassName}", 1,Color.LightBlue);
+            if (itemToCraft == null)
+            {
+                ResetAll($"No Item To Craft -> leaving");
+                return;
+            }
+
+            if (!IsCraftable(itemToCraft))
+            {
+                ResetAll($"Item not craftable -> leaving");
+                return;
+            }
+            if (doCraft && (DateTime.Now - timer).TotalMilliseconds > Settings.ExtraDelayCraftie.Value)
+            {
+                CraftIt(itemToCraft);
+            }
+
+            //    else
+            //        CraftWindow(itemToCraft);
+
+            //}
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="msg"></param>
         private void ResetAll (string msg)
         {
             if (!string.IsNullOrEmpty(msg))
                 LogMessage(msg, 1); //Show info
             isCraftingWindowVisible = false; // turn off crafting if Stash is changed!
-            if (KeyboardHelper.IsKeyDown(System.Windows.Forms.Keys.LShiftKey) && doCraft) // release shift state 
-                KeyboardHelper.KeyUp(System.Windows.Forms.Keys.LShiftKey);
+            if (Input.IsKeyDown(System.Windows.Forms.Keys.LShiftKey) && doCraft) // release shift state 
+                Input.KeyUp(System.Windows.Forms.Keys.LShiftKey);
             doCraft = false; // crafting inactive
             lastState = 0;
         }
+        
+        /// <summary>
+        /// 
+        /// </summary>
         private void ResetAll()
         {
             ResetAll("");
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="itemToCraft"></param>
         private void CraftWindow(NormalInventoryItem itemToCraft)
         {
             
@@ -384,15 +768,19 @@ namespace AllInOne
             ImGui.End();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="itemToCraft"></param>
         public void CraftIt(NormalInventoryItem itemToCraft)
         {
-            if (!BringToFront()) return;
+            //if (!BringToFront()) return;
             var x = itemToCraft;
             string orb = "";
-            if (itemToCraft.Item.HasComponent<Quality>() && Settings.useScraps)
+            if (itemToCraft.Item.HasComponent<Quality>() && Settings.useScraps && itemToCraft.Item.GetComponent<Quality>().ItemQuality<20)
             {
-                Quality comp = itemToCraft.Item.GetComponent<Quality>();
-                if (comp.ItemQuality < 20)
+                //Quality comp = itemToCraft.Item.GetComponent<Quality>();
+                //if (comp.ItemQuality < 20)
                     switch (getType(itemToCraft))
                     {
                         case "weapon":
@@ -418,8 +806,14 @@ namespace AllInOne
             {
 
             }
+            else
+            {
+                ResetAll("Nothing to do");
+                return;
+            }
 
             OrbCrafting(orb,itemToCraft);
+            timer = DateTime.Now;
         }
 
 
@@ -435,29 +829,26 @@ namespace AllInOne
                 NormalInventoryItem Currency = DoWeHaveCurrency(orb);
                 if (Currency != null)
                 {
-                    var currencyPos = CenterPoint(Currency.GetClientRect());
-                    var windowOffset = GameController.Window.GetWindowRectangle().TopLeft;
                     switch (lastState)
                     {
                         case 0: // Rightklick crafting currency
-                            Mouse.SetCursorPosAndRightClick(currencyPos, windowOffset, 10);
-                            //Mouse.SetCursorPosAndLeftClick(currencyPos, windowOffset); // test : remove !
-                            LogMessage("Craftit Laststate 1", 1);
+                            Input.SetCursorPositionAndClick(Currency.GetClientRect().Center,MouseButtons.Right);
+                            LogMessage("Craftit Laststate 0", 101);
                             lastState = 1;
                             //ResetAll(); // test : remove !
                             break;
                         case 1: // Press shift key
-                            KeyboardHelper.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down for continous clicks
-                            LogMessage("Craftit Laststate 1", 1);
+                            Input.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down for continous clicks
+                            LogMessage("Craftit Laststate 1", 101);
                             lastState = 2;
                             break;
                         case 2: // Leftklick Crafting item
-                            LogMessage("Craftit Laststate 2", 1);
-                            Mouse.SetCursorPosAndLeftClick(itemToCraft.GetClientRect().Center, windowOffset);
+                            LogMessage("Craftit Laststate 2", 101);
+                            Input.SetCursorPositionAndClick(itemToCraft.GetClientRect().Center);
+                            //ResetAll(); // test : remove !
                             break;
                     }
-
-                    Thread.Sleep(Settings.ExtraDelayCraftie.Value);
+                    //Thread.Sleep(Settings.ExtraDelayCraftie.Value);
                     lastCurrency = orb;
                 }
                 else
@@ -465,30 +856,21 @@ namespace AllInOne
             }
         }
 
-
-        private bool BringToFront()
-        {
-            int cnt = 0;
-            while (!GameController.Window.IsForeground()) // ImGui makes Poe not beeing the forground Window, so make it active
-            {
-                LogMessage($"activating Poe {cnt}");
-                WinApi.SetForegroundWindow(GameController.Window.Process.MainWindowHandle);
-                Thread.Sleep(100);
-                cnt++;
-                if (cnt > 20)
-                {
-                    ResetAll("");
-                    return false;
-                }
-            }
-            return true;
-        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="itemToCraft"></param>
+        /// <param name="currency"></param>
         private void CraftWithCurrency (NormalInventoryItem itemToCraft, NormalInventoryItem currency)
         {
             LogMessage($"Using {currency}", 1);
         }
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
         private bool IsCraftable(NormalInventoryItem item)
         {
             if (item.Item.GetComponent<Base>().isCorrupted)
@@ -496,7 +878,12 @@ namespace AllInOne
                 LogMessage("Item is non-craftable (corrupted).", 5);
                 return false;
             }
-
+            Mods m = item.Item.GetComponent<Mods>();
+            if (m==null)
+            {
+                LogMessage("Item Mods undetectable", 5,Color.Red);
+            }
+             
             if (!item.Item.GetComponent<Mods>().Identified)
             {
                 LogMessage("Item is non-craftable (unidentified).", 5);
@@ -512,6 +899,11 @@ namespace AllInOne
             return true;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="baseName"></param>
+        /// <returns></returns>
         private NormalInventoryItem DoWeHaveCurrency(string baseName)
         {
             NormalInventoryItem itm = null;
@@ -532,7 +924,6 @@ namespace AllInOne
                 }
             return itm;
         }
-
 
         /// <summary>
         /// Find the first item in Currency Stash that is not a currency.
@@ -559,7 +950,6 @@ namespace AllInOne
         }
 
         #endregion
-
 
         #region basic Stuff 
 
@@ -668,6 +1058,8 @@ namespace AllInOne
         #endregion
 
     }
+
+
 
 }
 

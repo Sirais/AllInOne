@@ -1,12 +1,29 @@
 ﻿using System;
-using System.Runtime.InteropServices;
-using System.Threading;
+using System.Collections.Generic;
 using SharpDX;
-using ExileCore;
+using System.Threading;
 using System.Windows.Forms;
+using Druzil.Poe.Libs;
+using ExileCore;
+using ExileCore.PoEMemory;
+using ExileCore.PoEMemory.Components;
+using ExileCore.PoEMemory.Elements;
+using ExileCore.PoEMemory.Elements.InventoryElements;
+using ExileCore.PoEMemory.MemoryObjects;
+using ExileCore.PoEMemory.Models;
+using ExileCore.Shared;
+using ExileCore.Shared.Abstract;
+using ExileCore.Shared.Enums;
+using ExileCore.Shared.Helpers;
+using ImGuiNET;
+using TreeRoutine.Menu;
+using System.Globalization;
+using System.Linq;
+using ExileCore.Shared.AtlasHelper;
+using System.Collections;
 
 
-namespace Druzil.Poe.Libs
+namespace AllInOne.Misc
 {
 	public class Mouse
 	{
@@ -154,26 +171,26 @@ namespace Druzil.Poe.Libs
 		{
 			int posX = (int)coords.X;
 			int posY = (int)coords.Y;
-			SetCursorPosAndLeftClick(posX, posY, extraDelay);
+			SetCursorPosAndRightClick(posX, posY, extraDelay);
 		}
 
 		public static void SetCursorPosAndRightClick(Vector2 coords, Vector2 windowOffset, int extraDelay)
 		{
 			var posX = (int)(coords.X + windowOffset.X);
 			var posY = (int)(coords.Y + windowOffset.Y);
-			SetCursorPosAndLeftClick(posX, posY, extraDelay);
+			SetCursorPosAndRightClick(posX, posY, extraDelay);
 		}
 
 		public static void SetCursorPosAndRightClick(Vector2 coords, Vector2 windowOffset)
 		{
 			var posX = (int)(coords.X + windowOffset.X);
 			var posY = (int)(coords.Y + windowOffset.Y);
-			SetCursorPosAndLeftClick(posX, posY, 0);
+			SetCursorPosAndRightClick(posX, posY, 0);
 		}
 
 		public static void SetCursorPosAndRightClick(Vector2 coords)
 		{
-			SetCursorPosAndLeftClick(coords, 0);
+			SetCursorPosAndRightClick(coords, 0);
 		}
 
 
@@ -267,7 +284,6 @@ namespace Druzil.Poe.Libs
 			return GetAsyncKeyState(VK_LBUTTON) !=0 ;
 		}
 	}
-
 
 	public class KeyboardHelper
 	{

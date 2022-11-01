@@ -22,9 +22,8 @@ namespace AllInOne
         public HotkeyNode Key09 { get; set; }
         public HotkeyNode Key10 { get; set; }
 
-        [Menu("Hotkey for picking up gems")]
-        public HotkeyNode HotKey { get; set; }
-
+        [Menu("Hotkey for activation")]
+        public HotkeyNode Q40HotKey { get; set; }
 
         [Menu("Enable Q40Picks ")]
         public ToggleNode EnableQ40 { get; set; }
@@ -48,6 +47,13 @@ namespace AllInOne
         [Menu("Enable Golem Recaster ")]
         public ToggleNode EnableGolem { get; set; }
 
+        
+        [Menu("Hotkey for activation")]
+        public HotkeyNode ResoHotKey { get; set; }
+        [Menu("Enable Resonator Split ")]
+        public ToggleNode EnableResoSplit { get; set; }
+
+
         [Menu("Enable ItemlevelFrame ")]
         public ToggleNode EnableILFrame { get; set; }
 
@@ -56,6 +62,17 @@ namespace AllInOne
         [Menu("Range check for Skellies")]
         public RangeNode<int> SkellieRange { get; set; }
 
+        [Menu("Enable Delve Walls")]
+        public ToggleNode EnableDelve { get; set; }
+
+        [Menu("Maximum Range")]
+        public RangeNode<int> DelveMaxRange { get; set; }
+
+        [Menu("Show Grid")]
+        public ToggleNode DelveShowGrid { get; set; }
+
+        [Menu("Hotkey for activation")]
+        public HotkeyNode CraftHotKey { get; set; }
         [Menu("Enable Craftie")]
         public ToggleNode EnableCraft { get; set; }
 
@@ -83,17 +100,23 @@ namespace AllInOne
             Key08 = Keys.Control | Keys.E;
             Key09 = Keys.Control | Keys.R;
             Key10 = Keys.Control | Keys.T;
+            //plugin 
+            Q40HotKey = Keys.NumPad1;
+            CraftHotKey = Keys.NumPad2;
+            ResoHotKey = Keys.NumPad3;
 
-
-
-        //plugin 
-        HotKey = Keys.NumPad8;
             ExtraDelayQ40 = new RangeNode<int>(100, 1, 1000);
             ExtraDelayCraftie = new RangeNode<int>(100, 1, 1000);
             UseFlask = new ToggleNode(false);
             Enable = new ToggleNode(false);
             MaxGemQuality = new RangeNode<int>(18, 1, 19);
             MaxGemLevel = new RangeNode<int>(18, 1, 19);
+            minSlots = new RangeNode<int>(5, 1, 6);
+            minLinks = new RangeNode<int>(5, 1, 6);
+            EnableDelve=new ToggleNode(false);
+            DelveMaxRange = new RangeNode<int>(300, 1, 1000);
+            DelveShowGrid = new ToggleNode(false);
+
         }
     }
 }

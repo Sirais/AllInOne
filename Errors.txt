@@ -1,0 +1,4 @@
+Build failed:
+[01.11.2022 10:55:38, CSC(0, 0)] CS2001: Quelldatei "c:\misc\PoE\tools\PoeHelper\Plugins\Source\AllInOne\QualityItem.cs" wurde nicht gefunden.
+[01.11.2022 10:55:38, CSC(0, 0)] CS2001: Quelldatei "c:\misc\PoE\tools\PoeHelper\Plugins\Source\AllInOne\SubSetSum.cs" wurde nicht gefunden.
+[01.11.2022 10:55:38, CSC(0, 0)] CS2001: Quelldatei "c:\misc\PoE\tools\PoeHelper\Plugins\Source\AllInOne\IOHelper.cs" wurde nicht gefunden.
