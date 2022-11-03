@@ -47,7 +47,9 @@ namespace AllInOne
         private string lastCurrency;
         private int lastState = 0;
         private DateTime timer;
-        
+
+
+        private Vector2 WindowScale;
 
         private IngameUIElements ingameUI;
 
@@ -68,6 +70,7 @@ namespace AllInOne
         {
             ingameUI = GameController.IngameState.IngameUi;
             isCraftingWindowVisible = false;
+            WindowScale = GameController.Window.GetWindowRectangle().TopLeft;
             lastCurrency = "";
             doCraft = false;
             return true;
@@ -235,7 +238,6 @@ namespace AllInOne
                 hits = getQualityType("Flask"); //No gems so try flasks
             if (hits != null && hits.Count > 0)
             {
-                LogMessage($"AllInOne: Q40 found  {hits.Count} Quality Items in open stash.", 1);
                 SetFinder Sets = new SetFinder(hits, 40);
                 if (Sets.BestSet == null)
                 {
@@ -243,6 +245,7 @@ namespace AllInOne
                     StopCoroutine("Q40Pick");
                     yield break;
                 }
+                LogMessage($"AllInOne: Q40 found, {Sets.BestSet.Values.Count} items in set ", 5);
                 yield return Q40pickup(Sets);
             }
             StopCoroutine(Routines.Q40Pick.ToString());
@@ -254,20 +257,23 @@ namespace AllInOne
         /// <param name="Sets"></param>
         private IEnumerator Q40pickup(SetFinder Sets)
         {
-            foreach (QualityItem g in Sets.BestSet.Values)
+            foreach (QualityItem itm in Sets.BestSet.Values)
             {
-                RectangleF itmPos = g.CheckItem.GetClientRect();
-                Input.KeyDown(System.Windows.Forms.Keys.LControlKey);
-                RectangleF x = g.CheckItem.GetClientRect();
-                LogMessage($"Y = {g.CheckItem.GetClientRect().Y} H={g.CheckItem.GetClientRect().Height}", 1);
-                yield return Input.SetCursorPositionAndClick(g.CheckItem.GetClientRect().Center);
-                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
-                Input.KeyUp(System.Windows.Forms.Keys.LControlKey);
-                Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
-                Thread.Sleep(Settings.ExtraDelayQ40);
+                //while (itm.CheckItem != null) //Try til item is klicked in case of lags or something 
+                //{
+                    LogMessage($"{itm.ToString()} X:{itm.CheckItem.InventPosX} Y:{itm.CheckItem.InventPosY}", 2);
+                    Input.KeyDown(System.Windows.Forms.Keys.LControlKey);
+                    yield return new WaitTime(30);
+                    yield return Input.SetCursorPositionAndClick(Center(itm.CheckItem.GetClientRect()), MouseButtons.Left, 50);
+                    yield return new WaitTime(30);
+                    Input.KeyUp(System.Windows.Forms.Keys.LControlKey);
+                    yield return new WaitTime(130 + Settings.ExtraDelayQ40);
+                //}
             }
             yield break;
         }
+
+
 
         private bool Q40canStart()
         {
@@ -375,12 +381,13 @@ namespace AllInOne
             {
                 // Click on reso stack and Pick one item
                 Input.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down for continous clicks
-                Thread.Sleep(20);
-                yield return Input.SetCursorPositionAndClick(reso.GetClientRect().Center);
-                Thread.Sleep(20);
+                yield return new WaitTime(30);
+                yield return Input.SetCursorPositionAndClick(Center(reso.GetClientRect()),MouseButtons.Left,30);
+                yield return new WaitTime(30);
                 Input.KeyUp(System.Windows.Forms.Keys.LShiftKey); // Release Shift 
-                Thread.Sleep(20);
-                yield return Input.KeyPress(System.Windows.Forms.Keys.Enter, 10);
+                yield return new WaitTime(30);
+                yield return Input.KeyPress(System.Windows.Forms.Keys.Enter,10);
+                yield return new WaitTime(30);
 
                 //// now the single reso should be on the cursor
                 //// make sure it is realy that 
@@ -390,7 +397,8 @@ namespace AllInOne
                 //    LogError("Error picking up");
                 //    yield break;
                 //}
-                yield return Input.SetCursorPositionAndClick(freeslot,MouseButtons.Left,10);
+                yield return Input.SetCursorPositionAndClick(Center(freeslot),MouseButtons.Left,30);
+                yield return new WaitTime(130);
             }
             yield break;
         }
@@ -404,7 +412,7 @@ namespace AllInOne
             bool hasSlot = slots.GetNextOpenSlot(ref openSlotPos);
             if (hasSlot) // is there a free slot for the item ? 
             {
-                pos= CenterPoint(GetClientRectFromPoint(openSlotPos, 1, 1));
+                pos= Center(GetClientRectFromPoint(openSlotPos, 1, 1));
                 return true;
             }
             return false;
@@ -1022,10 +1030,19 @@ namespace AllInOne
         }
 
 
-        private static Vector2 CenterPoint(RectangleF rec)
+        private Vector2 Center(RectangleF rec)
         {
-            var randomized = rec.Center;
-            return randomized;
+            Vector2 point = rec.Center;
+            point.X += WindowScale.X;
+            point.Y += WindowScale.Y;
+            return  point;
+        }
+
+        private Vector2 Center(Vector2 point)
+        {
+            point.X += WindowScale.X;
+            point.Y += WindowScale.Y;
+            return point;
         }
 
         // Randomitze clicking Point for Items
@@ -1043,7 +1060,6 @@ namespace AllInOne
 
             return randomized;
         }
-
 
         #endregion
 

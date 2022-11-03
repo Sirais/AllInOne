@@ -1,2 +1,2 @@
 Build failed:
-[02.11.2022 12:37:21, f:\games\poe-tools\PoeHelper\Plugins\Source\AllInOne\AllInOne.cs(388, 17)] CS0103: Der Name "KeyboardHelper" ist im aktuellen Kontext nicht vorhanden.
+[03.11.2022 13:45:11, c:\misc\PoE\tools\PoeHelper\Plugins\Source\AllInOne\AllInOne.cs(264, 96)] CS1002: ; erwartet.
