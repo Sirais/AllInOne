@@ -154,23 +154,16 @@ namespace AllInOne
             if (Settings.EnableGolem) ;
             if (Settings.EnableSMSkellies)
                 ShowMySkellies();
-            // Interactive and triggered Stuff
-            //if (Settings.Q40HotKey.PressedOnce())
-            //{
-            //    //Triggered Hotkey routines
-            //    if (Settings.EnableQ40)
-            //        Q40Pick();
-            //}
             if (Settings.CraftHotKey.PressedOnce())
             {
                 if (Settings.EnableCraft)
                 ToggleCraftie();
             }
-            if (Settings.ResoHotKey.PressedOnce())
-            {
-                if (Settings.EnableResoSplit)
-                    Resosplitter();
-            }
+            //if (Settings.ResoHotKey.PressedOnce())
+            //{
+            //    if (Settings.EnableResoSplit)
+            //        Resosplitter();
+            //}
             if (doCraft)
                 Craftie();
         }
@@ -185,7 +178,18 @@ namespace AllInOne
                 }
                 else
                 {
-                    StopCoroutine(Name);
+                    StopCoroutine(Routines.Q40Pick.ToString());
+                }
+            }
+            if (Settings.ResoHotKey.PressedOnce())
+            {
+                if (Core.ParallelRunner.FindByName(Routines.ResoSplit.ToString()) == null)
+                {
+                    StartCoroutine(Routines.ResoSplit);
+                }
+                else
+                {
+                    StopCoroutine(Routines.Q40Pick.ToString());
                 }
             }
             return null;
@@ -199,9 +203,8 @@ namespace AllInOne
                     Core.ParallelRunner.Run(new Coroutine(PickupQ40Routine(), this, Routines.Q40Pick.ToString()));
                     break;
                 case Routines.ResoSplit:
-                    Core.ParallelRunner.Run(new Coroutine(PickupQ40Routine(), this, Routines.Q40Pick.ToString()));
+                    Core.ParallelRunner.Run(new Coroutine(ResosplitterRoutine(), this, Routines.ResoSplit.ToString()));
                     break;
-
                 //case Routines.Craftie:
                 //    Core.ParallelRunner.Run(new Coroutine(TurnInDivCardsRoutine(), this, "TurnInDivCards"));
                 //    break;
@@ -255,7 +258,9 @@ namespace AllInOne
             {
                 RectangleF itmPos = g.CheckItem.GetClientRect();
                 Input.KeyDown(System.Windows.Forms.Keys.LControlKey);
-                Input.SetCursorPositionAndClick(g.CheckItem.GetClientRect().Center);
+                RectangleF x = g.CheckItem.GetClientRect();
+                LogMessage($"Y = {g.CheckItem.GetClientRect().Y} H={g.CheckItem.GetClientRect().Height}", 1);
+                yield return Input.SetCursorPositionAndClick(g.CheckItem.GetClientRect().Center);
                 Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
                 Input.KeyUp(System.Windows.Forms.Keys.LControlKey);
                 Thread.Sleep(20);//((int)GameController.Game.IngameState.CurLatency);
@@ -348,7 +353,7 @@ namespace AllInOne
 
         private IEnumerator ResosplitterRoutine()
         {
-            LogMessage("Resonator Splitter", 101);
+            LogMessage("Resonator Splitter");
             if (!ingameUI.InventoryPanel.IsVisible)
             {
                 ResetAll("Inventory not open");
@@ -357,61 +362,47 @@ namespace AllInOne
             NormalInventoryItem reso = HasResonators();
             if (reso != null)
             {
-                LogMessage("Found resonator", 101);
-                SplitResonator(reso);
+                yield return SplitResonator(reso);
             }
             StopCoroutine(Routines.ResoSplit.ToString());
         }
 
-        private void Resosplitter()
-        {
-            LogMessage("Resonator Splitter", 101);
-            if (!ingameUI.InventoryPanel.IsVisible)
-            {
-                ResetAll("Inventory not open");
-                return;
-            }
-            NormalInventoryItem reso = HasResonators();
-            if (reso != null)
-            {
-                LogMessage("Found resonator", 101);
-                SplitResonator(reso);
-            }
 
-            //if (GameController.IngameState.ServerData.PlayerInventories[0].Inventory.Items.Where(x => x.Path == "Metadata/Items/DivinationCards/DivinationCardDeck").Count() < 0;
-        }
-
-        private void SplitResonator(NormalInventoryItem item)
+        private IEnumerator SplitResonator(NormalInventoryItem reso)
         {
             Vector2 freeslot = new Vector2();
             if (GetNextFreeSlot(ref freeslot))
             {
-                var windowOffset = GameController.Window.GetWindowRectangle().TopLeft;
-                var pos = CenterPoint(item.GetClientRect());
+                // Click on reso stack and Pick one item
                 Input.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down for continous clicks
                 Thread.Sleep(20);
-                Input.SetCursorPositionAndClick(item.GetClientRect().Center);
+                yield return Input.SetCursorPositionAndClick(reso.GetClientRect().Center);
                 Thread.Sleep(20);
-                Input.KeyPress(System.Windows.Forms.Keys.Return);
-                Thread.Sleep(40);
                 Input.KeyUp(System.Windows.Forms.Keys.LShiftKey); // Release Shift 
-                //Thread.Sleep(20);
-                //Mouse.SetCursorPosAndLeftClick(freeslot, windowOffset);
+                Thread.Sleep(20);
+                yield return Input.KeyPress(System.Windows.Forms.Keys.Enter, 10);
+
+                //// now the single reso should be on the cursor
+                //// make sure it is realy that 
+                //yield return new WaitFunctionTimed(() => GameController.Game.IngameState.ServerData.PlayerInventories[12].Inventory.CountItems > 0, true, 10);
+                //if (GameController.Game.IngameState.ServerData.PlayerInventories[12].Inventory.TotalItemsCounts == 0)
+                //{
+                //    LogError("Error picking up");
+                //    yield break;
+                //}
+                yield return Input.SetCursorPositionAndClick(freeslot,MouseButtons.Left,10);
             }
-
-
+            yield break;
         }
 
         private bool GetNextFreeSlot(ref Vector2 pos)
         {
-            LogMessage("Checking open Slots", 101);
-            //ServerInventory 
             Point openSlotPos = Point.Zero;
             IEnumerable<ServerInventory.InventSlotItem> playerInventory = GameController.Game.IngameState.ServerData.PlayerInventories[0].Inventory.InventorySlotItems;
             var slots = GetInventoryLayout(playerInventory); /// Read all inventroryslots
-            LogMessage("slots:" + playerInventory.Count().ToString(), 101);
-            LogMessage(slots.Print(ref openSlotPos));
-            if (!slots.GetNextOpenSlot(ref openSlotPos)) // is there a free slot for the item ? 
+            //LogMessage(slots.Print(), 100); // Display of open Slot Array for debugging
+            bool hasSlot = slots.GetNextOpenSlot(ref openSlotPos);
+            if (hasSlot) // is there a free slot for the item ? 
             {
                 pos= CenterPoint(GetClientRectFromPoint(openSlotPos, 1, 1));
                 return true;
@@ -427,7 +418,6 @@ namespace AllInOne
         /// <returns></returns>
         private static int[,] GetInventoryLayout(IEnumerable<ServerInventory.InventSlotItem> slots)
         {
-            
             var inventorySlots = new[,]
             {
                 {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},

@@ -75,29 +75,20 @@ namespace AllInOne.Misc
                         return true;
                     }
                 }
-
                 start.Y = 0;
             }
-
             start.X = -1;
             start.Y = -1;
             return false;
         }
-        public static string Print(this int[,] matrix, ref Point start)
+        public static string Print(this int[,] matrix)
         {
-            if (start.X < 0 || start.Y < 0 || start.X >= matrix.GetLength(1) || start.Y >= matrix.GetLength(0))
-            {
-                start.X = -1;
-                start.Y = -1;
-                return "";
-            }
-
             string p = "";
-            for (; start.X < matrix.GetLength(1); start.X++)
+            for (int y=0; y<  matrix.GetLength(0); y++)
             {
-                for (; start.Y < matrix.GetLength(0); start.Y++)
+                for (int x=0; x < matrix.GetLength(1); x++)
                 {
-                    p += matrix[start.Y, start.X].ToString();
+                    p += matrix[y, x].ToString();
                 }
                 p += "-";
             }
