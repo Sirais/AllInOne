@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using SharpDX;
-using System.Threading;
-using System.Windows.Forms;
+﻿using AllInOne.Misc;
 using Druzil.Poe.Libs;
 using ExileCore;
 using ExileCore.PoEMemory;
@@ -13,22 +9,24 @@ using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.PoEMemory.Models;
 using ExileCore.Shared;
 using ExileCore.Shared.Abstract;
+using ExileCore.Shared.AtlasHelper;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
 using ImGuiNET;
-using TreeRoutine.Menu;
+using SharpDX;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using ExileCore.Shared.AtlasHelper;
-using System.Collections;
-using AllInOne.Misc;
+using System.Threading;
+using System.Windows.Forms;
+using TreeRoutine.Menu;
 
-//Todo : Shift state der tastatur beim schließen zurücksetzten, ausschalten crafting mit F8 
 
 
 namespace AllInOne
 {
-
     public enum Routines
     {
         Q40Pick = 1,
@@ -85,14 +83,14 @@ namespace AllInOne
         {
             ImGuiTreeNodeFlags collapsingHeaderFlags = ImGuiTreeNodeFlags.CollapsingHeader;
 
-//            ImGui.PushStyleColor(ImGuiCol.Header,Color.Green.ToImguiVec4());
+            //            ImGui.PushStyleColor(ImGuiCol.Header,Color.Green.ToImguiVec4());
             if (ImGui.TreeNodeEx("Q40 Picker", collapsingHeaderFlags))
             {
                 Settings.EnableQ40.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableQ40);
                 Settings.Q40HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.Q40HotKey.Value);
                 ImGui.Separator();
                 Settings.ExtraDelayQ40.Value = ImGuiExtension.IntSlider("extra Delay between clicks", Settings.ExtraDelayQ40.Value, 1, 500);
-                Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality.Value,1,20);
+                Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality.Value, 1, 20);
                 Settings.MaxGemLevel.Value = ImGuiExtension.IntSlider("Maximum Gem level to Sell", Settings.MaxGemLevel.Value, 1, 20);
             }
             if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
@@ -153,14 +151,14 @@ namespace AllInOne
                 MarkILvl();
             if (Settings.EnableDelve)
                 DelveWalls();
-            if (Settings.EnableAura);
+            if (Settings.EnableAura) ;
             if (Settings.EnableGolem) ;
             if (Settings.EnableSMSkellies)
                 ShowMySkellies();
             if (Settings.CraftHotKey.PressedOnce())
             {
                 if (Settings.EnableCraft)
-                ToggleCraftie();
+                    ToggleCraftie();
             }
             //if (Settings.ResoHotKey.PressedOnce())
             //{
@@ -172,7 +170,7 @@ namespace AllInOne
         }
 
         public override Job Tick()
-            {
+        {
             if (Settings.Q40HotKey.PressedOnce())
             {
                 if (Core.ParallelRunner.FindByName(Routines.Q40Pick.ToString()) == null)
@@ -208,9 +206,9 @@ namespace AllInOne
                 case Routines.ResoSplit:
                     Core.ParallelRunner.Run(new Coroutine(ResosplitterRoutine(), this, Routines.ResoSplit.ToString()));
                     break;
-                //case Routines.Craftie:
-                //    Core.ParallelRunner.Run(new Coroutine(TurnInDivCardsRoutine(), this, "TurnInDivCards"));
-                //    break;
+                    //case Routines.Craftie:
+                    //    Core.ParallelRunner.Run(new Coroutine(TurnInDivCardsRoutine(), this, "TurnInDivCards"));
+                    //    break;
             }
         }
 
@@ -261,13 +259,13 @@ namespace AllInOne
             {
                 //while (itm.CheckItem != null) //Try til item is klicked in case of lags or something 
                 //{
-                    LogMessage($"{itm.ToString()} X:{itm.CheckItem.InventPosX} Y:{itm.CheckItem.InventPosY}", 2);
-                    Input.KeyDown(System.Windows.Forms.Keys.LControlKey);
-                    yield return new WaitTime(30);
-                    yield return Input.SetCursorPositionAndClick(Center(itm.CheckItem.GetClientRect()), MouseButtons.Left, 50);
-                    yield return new WaitTime(30);
-                    Input.KeyUp(System.Windows.Forms.Keys.LControlKey);
-                    yield return new WaitTime(130 + Settings.ExtraDelayQ40);
+                LogMessage($"{itm.ToString()} X:{itm.CheckItem.InventPosX} Y:{itm.CheckItem.InventPosY}", 2);
+                Input.KeyDown(System.Windows.Forms.Keys.LControlKey);
+                yield return new WaitTime(30);
+                yield return Input.SetCursorPositionAndClick(Center(itm.CheckItem.GetClientRect()), MouseButtons.Left, 50);
+                yield return new WaitTime(30);
+                Input.KeyUp(System.Windows.Forms.Keys.LControlKey);
+                yield return new WaitTime(130 + Settings.ExtraDelayQ40);
                 //}
             }
             yield break;
@@ -382,11 +380,11 @@ namespace AllInOne
                 // Click on reso stack and Pick one item
                 Input.KeyDown(System.Windows.Forms.Keys.LShiftKey); // Make sure shift is down for continous clicks
                 yield return new WaitTime(30);
-                yield return Input.SetCursorPositionAndClick(Center(reso.GetClientRect()),MouseButtons.Left,30);
+                yield return Input.SetCursorPositionAndClick(Center(reso.GetClientRect()), MouseButtons.Left, 30);
                 yield return new WaitTime(30);
                 Input.KeyUp(System.Windows.Forms.Keys.LShiftKey); // Release Shift 
                 yield return new WaitTime(30);
-                yield return Input.KeyPress(System.Windows.Forms.Keys.Enter,10);
+                yield return Input.KeyPress(System.Windows.Forms.Keys.Enter, 10);
                 yield return new WaitTime(30);
 
                 //// now the single reso should be on the cursor
@@ -397,7 +395,7 @@ namespace AllInOne
                 //    LogError("Error picking up");
                 //    yield break;
                 //}
-                yield return Input.SetCursorPositionAndClick(Center(freeslot),MouseButtons.Left,30);
+                yield return Input.SetCursorPositionAndClick(Center(freeslot), MouseButtons.Left, 30);
                 yield return new WaitTime(130);
             }
             yield break;
@@ -412,7 +410,7 @@ namespace AllInOne
             bool hasSlot = slots.GetNextOpenSlot(ref openSlotPos);
             if (hasSlot) // is there a free slot for the item ? 
             {
-                pos= Center(GetClientRectFromPoint(openSlotPos, 1, 1));
+                pos = Center(GetClientRectFromPoint(openSlotPos, 1, 1));
                 return true;
             }
             return false;
@@ -468,7 +466,7 @@ namespace AllInOne
                     var stacksize = item.Item.GetComponent<ExileCore.PoEMemory.Components.Stack>()?.Size ?? 0;
                     //ExileCore.PoEMemory.Components.Stack stack = item.Item?.GetComponent<ExileCore.PoEMemory.Components.Stack>();
                     //if (stack != null && stack.Size > 1)
-                    if (stacksize>1)
+                    if (stacksize > 1)
                         found = item;
                 }
                 cnt++;
@@ -479,7 +477,7 @@ namespace AllInOne
         #endregion
 
         #region Mrk Ilvl 
-        private void MarkILvl ()
+        private void MarkILvl()
         {
             var stashPanel = ingameUI.StashElement;
             if (!stashPanel.IsVisible)
@@ -610,7 +608,7 @@ namespace AllInOne
                 Vector2 delta = e.GridPos - GameController.Player.GridPos;
                 double phi;
                 double distance = delta.GetPolarCoordinates(out phi);
-                if (distance > Settings.DelveMaxRange) 
+                if (distance > Settings.DelveMaxRange)
                     return;
                 RectangleF Dir = MathHepler.GetDirectionsUV(phi, distance);
                 RectangleF rect = GameController.Window.GetWindowRectangle();
@@ -652,7 +650,7 @@ namespace AllInOne
                 timer = DateTime.Now;
                 lastState = 0;
             }
-            
+
             //LogMessage($"Toggle Craftie. Current State = {doCraft.ToString()}", 1);
             //isCraftingWindowVisible = !isCraftingWindowVisible; // interactive Window doesnt work at all, so activating via hotkey
         }
@@ -660,7 +658,7 @@ namespace AllInOne
         /// <summary>
         /// 
         /// </summary>
-        private void Craftie ()
+        private void Craftie()
         {
             //LogMessage($"CraftieState = {doCraft.ToString()}", 1);
             //if (isCraftingWindowVisible)
@@ -687,7 +685,7 @@ namespace AllInOne
                 return;
             }
             NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
-            LogMessage($"item to Craft : {GameController.Files.BaseItemTypes.Translate(itemToCraft.Item.Path).ClassName}", 1,Color.LightBlue);
+            LogMessage($"item to Craft : {GameController.Files.BaseItemTypes.Translate(itemToCraft.Item.Path).ClassName}", 1, Color.LightBlue);
             if (itemToCraft == null)
             {
                 ResetAll($"No Item To Craft -> leaving");
@@ -714,7 +712,7 @@ namespace AllInOne
         /// 
         /// </summary>
         /// <param name="msg"></param>
-        private void ResetAll (string msg)
+        private void ResetAll(string msg)
         {
             if (!string.IsNullOrEmpty(msg))
                 LogMessage(msg, 1); //Show info
@@ -724,7 +722,7 @@ namespace AllInOne
             doCraft = false; // crafting inactive
             lastState = 0;
         }
-        
+
         /// <summary>
         /// 
         /// </summary>
@@ -739,9 +737,9 @@ namespace AllInOne
         /// <param name="itemToCraft"></param>
         private void CraftWindow(NormalInventoryItem itemToCraft)
         {
-            
+
             //LogMessage("CraftWindow", 1);
-            System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.Position.X + ingameUI.StashElement.VisibleStash.Width,     ingameUI.StashElement.VisibleStash.Position.Y);
+            System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.Position.X + ingameUI.StashElement.VisibleStash.Width, ingameUI.StashElement.VisibleStash.Position.Y);
 
             ImGui.Begin("Craftie");
             ImGui.SetNextWindowSizeConstraints(Pos, new System.Numerics.Vector2(300, 300));
@@ -754,10 +752,10 @@ namespace AllInOne
             Settings.useFusings.Value = ImGuiExtension.Checkbox("Use Fusings", Settings.useFusings);
             Settings.minLinks.Value = ImGuiExtension.IntSlider("minimum Links", Settings.minLinks.Value, 1, 6);
 
-            
+
             if (doCraft)
             {
-                if (ImGui.Button("Stop Crafting")) doCraft=false;
+                if (ImGui.Button("Stop Crafting")) doCraft = false;
             }
             else
             {
@@ -775,32 +773,32 @@ namespace AllInOne
             //if (!BringToFront()) return;
             var x = itemToCraft;
             string orb = "";
-            if (itemToCraft.Item.HasComponent<Quality>() && Settings.useScraps && itemToCraft.Item.GetComponent<Quality>().ItemQuality<20)
+            if (itemToCraft.Item.HasComponent<Quality>() && Settings.useScraps && itemToCraft.Item.GetComponent<Quality>().ItemQuality < 20)
             {
                 //Quality comp = itemToCraft.Item.GetComponent<Quality>();
                 //if (comp.ItemQuality < 20)
-                    switch (getType(itemToCraft))
-                    {
-                        case "weapon":
-                            orb = "Blacksmith's Whetstone";
-                            break;
-                        case "armour":
-                            orb = "Armourer's Scrap";
-                            break;
-                        case "flask":
-                            orb = "Glasblower's Bauble";
-                            break;
-                        default:
-                            orb = "";
-                            break;
-                    }
+                switch (getType(itemToCraft))
+                {
+                    case "weapon":
+                        orb = "Blacksmith's Whetstone";
+                        break;
+                    case "armour":
+                        orb = "Armourer's Scrap";
+                        break;
+                    case "flask":
+                        orb = "Glasblower's Bauble";
+                        break;
+                    default:
+                        orb = "";
+                        break;
+                }
 
             }
             else if (itemToCraft.Item.HasComponent<Quality>() && Settings.useJewellers)
             {
 
             }
-            else if(itemToCraft.Item.HasComponent<Quality>() && Settings.useFusings)
+            else if (itemToCraft.Item.HasComponent<Quality>() && Settings.useFusings)
             {
 
             }
@@ -810,7 +808,7 @@ namespace AllInOne
                 return;
             }
 
-            OrbCrafting(orb,itemToCraft);
+            OrbCrafting(orb, itemToCraft);
             timer = DateTime.Now;
         }
 
@@ -830,7 +828,7 @@ namespace AllInOne
                     switch (lastState)
                     {
                         case 0: // Rightklick crafting currency
-                            Input.SetCursorPositionAndClick(Currency.GetClientRect().Center,MouseButtons.Right);
+                            Input.SetCursorPositionAndClick(Currency.GetClientRect().Center, MouseButtons.Right);
                             LogMessage("Craftit Laststate 0", 101);
                             lastState = 1;
                             //ResetAll(); // test : remove !
@@ -859,7 +857,7 @@ namespace AllInOne
         /// </summary>
         /// <param name="itemToCraft"></param>
         /// <param name="currency"></param>
-        private void CraftWithCurrency (NormalInventoryItem itemToCraft, NormalInventoryItem currency)
+        private void CraftWithCurrency(NormalInventoryItem itemToCraft, NormalInventoryItem currency)
         {
             LogMessage($"Using {currency}", 1);
         }
@@ -877,11 +875,11 @@ namespace AllInOne
                 return false;
             }
             Mods m = item.Item.GetComponent<Mods>();
-            if (m==null)
+            if (m == null)
             {
-                LogMessage("Item Mods undetectable", 5,Color.Red);
+                LogMessage("Item Mods undetectable", 5, Color.Red);
             }
-             
+
             if (!item.Item.GetComponent<Mods>().Identified)
             {
                 LogMessage("Item is non-craftable (unidentified).", 5);
@@ -934,15 +932,15 @@ namespace AllInOne
             if (inventoryItems != null)
             {
                 int cnt = 0;
-                while (itm == null && cnt<inventoryItems.Count)
-                foreach (NormalInventoryItem item in inventoryItems)
-                {
+                while (itm == null && cnt < inventoryItems.Count)
+                    foreach (NormalInventoryItem item in inventoryItems)
+                    {
                         if (!item.Item.GetComponent<RenderItem>().ResourcePath.Contains("Currency"))
                         {
                             itm = item;
                             break;
                         }
-                }
+                    }
             }
             return itm;
         }
@@ -1035,7 +1033,7 @@ namespace AllInOne
             Vector2 point = rec.Center;
             point.X += WindowScale.X;
             point.Y += WindowScale.Y;
-            return  point;
+            return point;
         }
 
         private Vector2 Center(Vector2 point)

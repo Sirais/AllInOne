@@ -1,12 +1,12 @@
-﻿using System;
+﻿using ExileCore;
+using ExileCore.Shared.Nodes;
+using ImGuiNET;
+using SharpDX;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using ExileCore;
-using ExileCore.Shared.Nodes;
-using ImGuiNET;
-using SharpDX;
 using ImGuiVector2 = System.Numerics.Vector2;
 using ImGuiVector4 = System.Numerics.Vector4;
 
@@ -171,7 +171,7 @@ namespace TreeRoutine.Menu
                 open = true;
             }
 
-            if (ImGui.BeginPopupModal(buttonName, ref open, (ImGuiWindowFlags) 35))
+            if (ImGui.BeginPopupModal(buttonName, ref open, (ImGuiWindowFlags)35))
             {
                 if (Input.GetKeyState(Keys.Escape))
                 {
@@ -182,10 +182,10 @@ namespace TreeRoutine.Menu
                 {
                     foreach (var key in Enum.GetValues(typeof(Keys)))
                     {
-                        var keyState = Input.GetKeyState((Keys) key);
+                        var keyState = Input.GetKeyState((Keys)key);
                         if (keyState)
                         {
-                            currentKey = (Keys) key;
+                            currentKey = (Keys)key;
                             ImGui.CloseCurrentPopup();
                             break;
                         }

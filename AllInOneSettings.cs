@@ -47,7 +47,7 @@ namespace AllInOne
         [Menu("Enable Golem Recaster ")]
         public ToggleNode EnableGolem { get; set; }
 
-        
+
         [Menu("Hotkey for activation")]
         public HotkeyNode ResoHotKey { get; set; }
         [Menu("Enable Resonator Split ")]
@@ -113,7 +113,7 @@ namespace AllInOne
             MaxGemLevel = new RangeNode<int>(18, 1, 19);
             minSlots = new RangeNode<int>(5, 1, 6);
             minLinks = new RangeNode<int>(5, 1, 6);
-            EnableDelve=new ToggleNode(false);
+            EnableDelve = new ToggleNode(false);
             DelveMaxRange = new RangeNode<int>(300, 1, 1000);
             DelveShowGrid = new ToggleNode(false);
 

@@ -1,2 +1,7 @@
 Build failed:
-[03.11.2022 13:45:11, c:\misc\PoE\tools\PoeHelper\Plugins\Source\AllInOne\AllInOne.cs(264, 96)] CS1002: ; erwartet.
+[28.12.2022 12:38:40, f:\games\poe-tools\poehelperv2\Plugins\Source\AllInOne\obj\Debug\net6.0-windows\win-x64\AllInOne.AssemblyInfo.cs(13, 12)] CS0579: Doppeltes Attribut "System.Reflection.AssemblyCompanyAttribute".
+[28.12.2022 12:38:40, f:\games\poe-tools\poehelperv2\Plugins\Source\AllInOne\obj\Debug\net6.0-windows\win-x64\AllInOne.AssemblyInfo.cs(14, 12)] CS0579: Doppeltes Attribut "System.Reflection.AssemblyConfigurationAttribute".
+[28.12.2022 12:38:40, f:\games\poe-tools\poehelperv2\Plugins\Source\AllInOne\obj\Debug\net6.0-windows\win-x64\AllInOne.AssemblyInfo.cs(15, 12)] CS0579: Doppeltes Attribut "System.Reflection.AssemblyFileVersionAttribute".
+[28.12.2022 12:38:40, f:\games\poe-tools\poehelperv2\Plugins\Source\AllInOne\obj\Debug\net6.0-windows\win-x64\AllInOne.AssemblyInfo.cs(17, 12)] CS0579: Doppeltes Attribut "System.Reflection.AssemblyProductAttribute".
+[28.12.2022 12:38:40, f:\games\poe-tools\poehelperv2\Plugins\Source\AllInOne\obj\Debug\net6.0-windows\win-x64\AllInOne.AssemblyInfo.cs(18, 12)] CS0579: Doppeltes Attribut "System.Reflection.AssemblyTitleAttribute".
+[28.12.2022 12:38:40, f:\games\poe-tools\poehelperv2\Plugins\Source\AllInOne\obj\Debug\net6.0-windows\win-x64\AllInOne.AssemblyInfo.cs(19, 12)] CS0579: Doppeltes Attribut "System.Reflection.AssemblyVersionAttribute".

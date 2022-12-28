@@ -1,17 +1,17 @@
-﻿using System;
+﻿using Druzil.Poe.Libs;
+using ExileCore.PoEMemory.Elements.InventoryElements;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ExileCore.PoEMemory.Elements.InventoryElements;
-using Druzil.Poe.Libs;
 
 namespace AllInOne
 {
     /// <summary>
     /// Collectionobject for subsetSum Quality 40 !
     /// </summary>
-    class QualityItem : setData
+    internal class QualityItem : setData
     {
         public NormalInventoryItem CheckItem { get; set; }
         public int Quality { get; set; }

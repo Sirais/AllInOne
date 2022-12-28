@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Druzil.Poe.Libs;
+using System;
 using System.Collections.Generic;
-using Druzil.Poe.Libs;
 
 namespace Subsettest
 {
-    class Program
+    internal class Program
     {
 
         static void Main(string[] args)
@@ -26,7 +26,7 @@ namespace Subsettest
         {
             List<setData> res = new List<setData>();
             Random rnd = new Random();
-            for (int i=1;i<=400; i++)
+            for (int i = 1; i <= 400; i++)
             {
                 QualityGem q = new QualityGem(i.ToString(), rnd.Next(19) + 1);
                 res.Add(q);
@@ -56,7 +56,7 @@ namespace Subsettest
 
             public override string ToString()
             {
-                return Name + " : Q"+Quality.ToString();
+                return Name + " : Q" + Quality.ToString();
             }
 
         }

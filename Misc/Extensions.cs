@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using SharpDX;
-using System.Threading;
-using System.Windows.Forms;
-using Druzil.Poe.Libs;
+﻿using Druzil.Poe.Libs;
 using ExileCore;
 using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Components;
@@ -13,14 +8,19 @@ using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.PoEMemory.Models;
 using ExileCore.Shared;
 using ExileCore.Shared.Abstract;
+using ExileCore.Shared.AtlasHelper;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
 using ImGuiNET;
-using TreeRoutine.Menu;
+using SharpDX;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using ExileCore.Shared.AtlasHelper;
-using System.Collections;
+using System.Threading;
+using System.Windows.Forms;
+using TreeRoutine.Menu;
 
 namespace AllInOne.Misc
 {
@@ -84,9 +84,9 @@ namespace AllInOne.Misc
         public static string Print(this int[,] matrix)
         {
             string p = "";
-            for (int y=0; y<  matrix.GetLength(0); y++)
+            for (int y = 0; y < matrix.GetLength(0); y++)
             {
-                for (int x=0; x < matrix.GetLength(1); x++)
+                for (int x = 0; x < matrix.GetLength(1); x++)
                 {
                     p += matrix[y, x].ToString();
                 }
