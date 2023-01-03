@@ -25,6 +25,7 @@ using TreeRoutine.Menu;
 using System.IO;
 using System.Drawing.Text;
 using AllInOne.Misc;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 
 namespace AllInOne
 {
@@ -74,7 +75,6 @@ namespace AllInOne
             WindowScale = GameController.Window.GetWindowRectangle().TopLeft;
             lastCurrency = "";
             doCraft = false;
-            File.WriteAllText("c:\\temp\\x.txt", $"{WinApi.GetKeyState((Keys)0).ToString()}");
             StartCoroutine(Routines.GemLevelUp);
             return true;
         }
@@ -220,7 +220,7 @@ namespace AllInOne
                 //    Core.ParallelRunner.Run(new Coroutine(TurnInDivCardsRoutine(), this, "TurnInDivCards"));
                 //    break;
                 case Routines.GemLevelUp:
-                    Core.ParallelRunner.Run(new Coroutine(GemLevelUp(), this, Routines.GemLevelUp.ToString()));
+                    Core.ParallelRunner.Run(new Coroutine(GemLevelUp(CheckGemToLevel), this, Routines.GemLevelUp.ToString()));
                     break;
             }
         }
@@ -537,25 +537,37 @@ namespace AllInOne
         #endregion
 
         #region Gem Leveling Stuff
-        private IEnumerator GemLevelUp()
+
+        private IEnumerator GemLevelUp(Action a)
         {
-            File.AppendAllText("c:\\temp\\plugin.txt", "running");
-            
-            LogMessage($"GemlevelUp");
+            yield return YieldBase.RealWork;
+            while (true)
+            {
+                try
+                {
+                    a?.Invoke();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Coroutine GemLevelup  error -> {e}");
+                }
+
+                //Ticks++;
+                yield return new WaitTime(100);
+            }
+        }
+
+        private void CheckGemToLevel()
+        {
             if (Settings.EnableGemLeveling)
             {
                 // dont run on open Inventory, because the Click areas are different
                 if (ingameUI.StashElement.IsVisible)
-                {
-                    yield return new WaitTime(1);
-                }
+                    return;
                 // Might have to check other open Windows 
                 if (Busy()) // 
-                {
-                    yield return new WaitTime(1);
-                }
+                    return;
 
-                LogMessage($"Checking Gems to level");
                 // get Gem Lvl Up Windows
                 var Gems = GameController.Game.IngameState.IngameUi.GemLvlUpPanel.GemsToLvlUp;
 
@@ -565,22 +577,36 @@ namespace AllInOne
                     {
                         if (element == null) continue;
 
-                        var skillGemButton =
-                            element.GetChildAtIndex(1).GetClientRect();
+                        var skillGemButton = element.GetChildAtIndex(1).GetClientRect();
 
                         var skillGemText = element.GetChildAtIndex(3).Text;
                         if (element.GetChildAtIndex(2).IsVisibleLocal) continue;
 
 
                         if (skillGemText?.ToLower() == "click to level up")
-                            GameController.Debug["GemUp"] = element;
+                        {
+                            LogMessage($"there is a gem to level... just do it ");
+                            Point CurrentPosition = Mouse.GetCursorPosition();
+                            //Vector2 p = Center(skillGemButton);
+                            Mouse.SetCursorPosAndLeftClick(Center(skillGemButton));
+                            //Input.SetCursorPositionAndClick(Center(skillGemButton), MouseButtons.Left,10); // doesnt work, no idea why
+                            Mouse.SetCursorPos(CurrentPosition);
+                        }
+                        break; // Only one at a time !
                     }
                 }
+                else
+                    LogMessage($"No Gems to level");
             }
+
         }
+
+
         private bool Busy()
         {
             if (Mouse.isLeftButtonPressed() || Mouse.isRightButtonPressed() || Mouse.isMiddleButtonPressed())
+                return true;
+            if (GameController?.Player?.GetComponent<Actor>()?.Animation !=AnimationE.Idle)
                 return true;
             return false;
         }

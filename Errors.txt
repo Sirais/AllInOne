@@ -1,2 +1,0 @@
-Build failed:
-[03.01.2023 10:22:14, c:\misc\PoE\tools\PoeHelper\Plugins\Source\AllInOne\AllInOne.cs(542, 41)] CS1009: Nicht erkannte Escapesequenz.

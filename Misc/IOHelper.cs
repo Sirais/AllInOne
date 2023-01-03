@@ -114,6 +114,25 @@ namespace AllInOne.Misc
             mouse_event(MouseLeftButtonUp, 0, 0, 0, 0);
         }
 
+        public static void SetCursorPosAndLeftClick(Point pos, int extraDelay)
+        {
+            SetCursorPos(pos.X, pos.Y);
+            Thread.Sleep(MovementDelay + extraDelay);
+            mouse_event(MouseLeftButtonDown, 0, 0, 0, 0);
+            Thread.Sleep(ClickDelay);
+            mouse_event(MouseLeftButtonUp, 0, 0, 0, 0);
+        }
+
+        public static void SetCursorPosAndLeftClick(Point pos)
+        {
+            SetCursorPos(pos.X, pos.Y);
+            Thread.Sleep(MovementDelay );
+            mouse_event(MouseLeftButtonDown, 0, 0, 0, 0);
+            Thread.Sleep(ClickDelay);
+            mouse_event(MouseLeftButtonUp, 0, 0, 0, 0);
+        }
+
+
         public static void SetCursorPosAndLeftClick(Vector2 coords, int extraDelay)
         {
             int posX = (int)coords.X;
