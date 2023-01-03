@@ -585,9 +585,7 @@ namespace AllInOne
 
                         if (skillGemText?.ToLower() == "click to level up")
                         {
-                            LogMessage($"there is a gem to level... just do it ");
                             Point CurrentPosition = Mouse.GetCursorPosition();
-                            //Vector2 p = Center(skillGemButton);
                             Mouse.SetCursorPosAndLeftClick(Center(skillGemButton));
                             //Input.SetCursorPositionAndClick(Center(skillGemButton), MouseButtons.Left,10); // doesnt work, no idea why
                             Mouse.SetCursorPos(CurrentPosition);
