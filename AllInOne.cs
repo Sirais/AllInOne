@@ -26,6 +26,8 @@ using System.IO;
 using System.Drawing.Text;
 using AllInOne.Misc;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Status;
 
 namespace AllInOne
 {
@@ -571,6 +573,10 @@ namespace AllInOne
                 // get Gem Lvl Up Windows
                 var Gems = GameController.Game.IngameState.IngameUi.GemLvlUpPanel.GemsToLvlUp;
 
+                if (Settings.GLMobsNear) // only check mobs in range if enabled
+                    if (countMobs(Settings.GLMobRange.Value) > 0)
+                        return;
+
                 if (Gems.Count > 0) // Gems to level exist?
                 {
                     foreach (var element in Gems)
@@ -593,12 +599,9 @@ namespace AllInOne
                         break; // Only one at a time !
                     }
                 }
-                else
-                    LogMessage($"No Gems to level");
             }
 
         }
-
 
         private bool Busy()
         {
@@ -609,7 +612,7 @@ namespace AllInOne
             return false;
         }
 
-            #endregion
+        #endregion
 
         #region Delvewalls
         public void DelveWalls()
@@ -1034,6 +1037,54 @@ namespace AllInOne
 
         #region basic Stuff 
 
+        private bool HasStat(Entity monster, GameStat stat)
+        {
+            // Using this with GameController.EntityListWrapper.ValidEntitiesByType[EntityType.Monster].Where
+            // seems to cause Nullref errors on TC Fork. Where using the Code directly in a check seems fine, must have to do with Entity Parameter.
+            // Maybe someone knows why, i dont :)
+            try
+            {
+                var value = monster?.GetComponent<Stats>()?.StatDictionary?[stat];
+                return value > 0;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private int countCorpses()
+        {
+            return GameController.Entities.Where
+                (x =>x.IsValid 
+                && !x.IsHidden 
+                && x.IsHostile 
+                && x.IsDead 
+                && x.IsTargetable &&
+                x.HasComponent<Monster>()
+                ).ToList().Count;
+        }
+
+        private int countMobs (int maxrange)
+        {
+            int mobs = 0;
+            List<Entity> enemys = GameController.EntityListWrapper.ValidEntitiesByType[EntityType.Monster].Where
+                (x =>
+                    x != null 
+                    && x.IsAlive 
+                    && x.IsHostile 
+                    && x.GetComponent<Life>()?.CurHP > 0 
+                    && x.GetComponent<Targetable>()?.isTargetable == true 
+                    && !HasStat(x, GameStat.CannotBeDamaged) 
+                    && GameController.Window.GetWindowRectangleTimeCache.Contains(
+                        GameController.Game.IngameState.Camera.WorldToScreen(x.Pos))).ToList();
+            Vector2 p = new Vector2(GameController.Game.IngameState.Data.LocalPlayer.Pos.X, GameController.Game.IngameState.Data.LocalPlayer.Pos.Y);
+            foreach (var monster in enemys)
+                if (Vector2.Distance(new Vector2(monster.Pos.X, monster.Pos.Y),p) <= maxrange)
+                    mobs++;
+            return mobs;
+        }
+
         private string getType(NormalInventoryItem itm)
         {
             if (isWeapon(itm)) return "weapon";
@@ -1098,7 +1149,6 @@ namespace AllInOne
             };
             return (Weapons.Contains(GameController.Files.BaseItemTypes.Translate(itm.Item.Path).ClassName));
         }
-
 
         private bool isFlask(NormalInventoryItem itm)
         {
