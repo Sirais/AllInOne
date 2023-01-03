@@ -22,8 +22,9 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using TreeRoutine.Menu;
-
-
+using System.IO;
+using System.Drawing.Text;
+using AllInOne.Misc;
 
 namespace AllInOne
 {
@@ -31,7 +32,9 @@ namespace AllInOne
     {
         Q40Pick = 1,
         Craftie = 2,
-        ResoSplit = 3
+        ResoSplit = 3,
+        GemLevelUp = 4
+
     }
 
 
@@ -71,6 +74,8 @@ namespace AllInOne
             WindowScale = GameController.Window.GetWindowRectangle().TopLeft;
             lastCurrency = "";
             doCraft = false;
+            File.WriteAllText("c:\\temp\\x.txt", $"{WinApi.GetKeyState((Keys)0).ToString()}");
+            StartCoroutine(Routines.GemLevelUp);
             return true;
         }
 
@@ -83,21 +88,21 @@ namespace AllInOne
         {
             ImGuiTreeNodeFlags collapsingHeaderFlags = ImGuiTreeNodeFlags.CollapsingHeader;
 
-            //            ImGui.PushStyleColor(ImGuiCol.Header,Color.Green.ToImguiVec4());
+            ImGui.PushStyleColor(ImGuiCol.Header,Color.Blue.ToImguiVec4());
             if (ImGui.TreeNodeEx("Q40 Picker", collapsingHeaderFlags))
             {
                 Settings.EnableQ40.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableQ40);
-                Settings.Q40HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.Q40HotKey.Value);
+                Settings.Q40HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey"+ Settings.Q40HotKey.Value, Settings.Q40HotKey);
                 ImGui.Separator();
-                Settings.ExtraDelayQ40.Value = ImGuiExtension.IntSlider("extra Delay between clicks", Settings.ExtraDelayQ40.Value, 1, 500);
-                Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality.Value, 1, 20);
-                Settings.MaxGemLevel.Value = ImGuiExtension.IntSlider("Maximum Gem level to Sell", Settings.MaxGemLevel.Value, 1, 20);
+                Settings.ExtraDelayQ40.Value = ImGuiExtension.IntSlider("extra Delay between clicks", Settings.ExtraDelayQ40.Value, Settings.ExtraDelayQ40.Min, Settings.ExtraDelayQ40.Max);
+                Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality.Value, Settings.MaxGemQuality.Min, Settings.MaxGemQuality.Max);
+                Settings.MaxGemLevel.Value = ImGuiExtension.IntSlider("Maximum Gem level to Sell", Settings.MaxGemLevel.Value, Settings.MaxGemLevel.Min, Settings.MaxGemLevel.Max);
             }
-            if (ImGui.TreeNodeEx("Craftie", collapsingHeaderFlags))
+            if (ImGui.TreeNodeEx("Craftie (not yet implemented)", collapsingHeaderFlags))
             {
                 Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Crafting of items", Settings.EnableCraft);
-                Settings.CraftHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.CraftHotKey.Value);
-                Settings.ExtraDelayCraftie.Value = ImGuiExtension.IntSlider("extra Delay between crafting clicks", Settings.ExtraDelayCraftie.Value, 1, 2000);
+                Settings.CraftHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey"+ Settings.CraftHotKey.Value, Settings.CraftHotKey);
+                Settings.ExtraDelayCraftie.Value = ImGuiExtension.IntSlider("extra Delay between crafting clicks", Settings.ExtraDelayCraftie.Value, Settings.ExtraDelayCraftie.Min, Settings.ExtraDelayCraftie.Max);
                 ImGui.Separator();
                 Settings.useScraps.Value = ImGuiExtension.Checkbox("Use Scraps", Settings.useScraps);
                 Settings.useJewellers.Value = ImGuiExtension.Checkbox("Use Jewellers", Settings.useJewellers);
@@ -111,23 +116,17 @@ namespace AllInOne
                 Settings.DelveMaxRange.Value = ImGuiExtension.IntSlider("Maximum Distance", Settings.DelveMaxRange);
             }
 
-            //if (ImGui.TreeNodeEx("Resonator Splitter", collapsingHeaderFlags))
-            //{
-            //    Settings.EnableDelve.Value = ImGuiExtension.Checkbox("Enable Delve Walls", Settings.EnableDelve);
-            //    Settings.DelveMaxRange.Value = ImGuiExtension.IntSlider("Maximum Distance", Settings.DelveMaxRange);
-            //}
-
             if (ImGui.TreeNodeEx("Resonator Splitter", collapsingHeaderFlags))
             {
                 Settings.EnableResoSplit.Value = ImGuiExtension.Checkbox("Enable Resonator Splitter", Settings.EnableResoSplit);
-                Settings.ResoHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey", Settings.ResoHotKey.Value);
+                Settings.ResoHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey"+ Settings.ResoHotKey.Value, Settings.ResoHotKey);
             }
 
-            if (ImGui.TreeNodeEx("Aura enabler", collapsingHeaderFlags))
+            if (ImGui.TreeNodeEx("Aura enabler (not yet implemented)", collapsingHeaderFlags))
             {
                 Settings.EnableAura.Value = ImGuiExtension.Checkbox("Enable Aura Recaster", Settings.EnableAura);
             }
-            if (ImGui.TreeNodeEx("Golem recaster", collapsingHeaderFlags))
+            if (ImGui.TreeNodeEx("Golem recaster (not yet implemented)", collapsingHeaderFlags))
             {
                 Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Golem Recaster", Settings.EnableGolem);
             }
@@ -138,6 +137,13 @@ namespace AllInOne
             if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
             {
                 Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame for Itemlevel (Chaos items)", Settings.EnableILFrame);
+            }
+            if (ImGui.TreeNodeEx("Gem Leveling", collapsingHeaderFlags))
+            {
+                Settings.EnableGemLeveling.Value = ImGuiExtension.Checkbox("Enable Gem leveling", Settings.EnableGemLeveling);
+                Settings.GLMobsNear.Value = ImGuiExtension.Checkbox("Check on Mobs near", Settings.GLMobsNear);
+                if (Settings.GLMobRange != null) // just debugging as i get a null pointer
+                    Settings.GLMobRange.Value = ImGuiExtension.IntSlider("Range to check for mobs", Settings.GLMobRange.Value, Settings.GLMobRange.Min, Settings.GLMobRange.Max);
             }
         }
 
@@ -155,6 +161,9 @@ namespace AllInOne
             if (Settings.EnableGolem) ;
             if (Settings.EnableSMSkellies)
                 ShowMySkellies();
+            //if (Settings.EnableGemLeveling)
+            //    GemLevelUp();
+            
             if (Settings.CraftHotKey.PressedOnce())
             {
                 if (Settings.EnableCraft)
@@ -171,6 +180,7 @@ namespace AllInOne
 
         public override Job Tick()
         {
+            // Turn on/off Coroutines on Keypress
             if (Settings.Q40HotKey.PressedOnce())
             {
                 if (Core.ParallelRunner.FindByName(Routines.Q40Pick.ToString()) == null)
@@ -206,9 +216,12 @@ namespace AllInOne
                 case Routines.ResoSplit:
                     Core.ParallelRunner.Run(new Coroutine(ResosplitterRoutine(), this, Routines.ResoSplit.ToString()));
                     break;
-                    //case Routines.Craftie:
-                    //    Core.ParallelRunner.Run(new Coroutine(TurnInDivCardsRoutine(), this, "TurnInDivCards"));
-                    //    break;
+                //case Routines.Craftie:
+                //    Core.ParallelRunner.Run(new Coroutine(TurnInDivCardsRoutine(), this, "TurnInDivCards"));
+                //    break;
+                case Routines.GemLevelUp:
+                    Core.ParallelRunner.Run(new Coroutine(GemLevelUp(), this, Routines.GemLevelUp.ToString()));
+                    break;
             }
         }
 
@@ -257,9 +270,6 @@ namespace AllInOne
         {
             foreach (QualityItem itm in Sets.BestSet.Values)
             {
-                //while (itm.CheckItem != null) //Try til item is klicked in case of lags or something 
-                //{
-                LogMessage($"{itm.ToString()} X:{itm.CheckItem.InventPosX} Y:{itm.CheckItem.InventPosY}", 2);
                 Input.KeyDown(System.Windows.Forms.Keys.LControlKey);
                 yield return new WaitTime(30);
                 yield return Input.SetCursorPositionAndClick(Center(itm.CheckItem.GetClientRect()), MouseButtons.Left, 50);
@@ -525,6 +535,57 @@ namespace AllInOne
         }
 
         #endregion
+
+        #region Gem Leveling Stuff
+        private IEnumerator GemLevelUp()
+        {
+            File.AppendAllText("c:\\temp\\plugin.txt", "running");
+            
+            LogMessage($"GemlevelUp");
+            if (Settings.EnableGemLeveling)
+            {
+                // dont run on open Inventory, because the Click areas are different
+                if (ingameUI.StashElement.IsVisible)
+                {
+                    yield return new WaitTime(1);
+                }
+                // Might have to check other open Windows 
+                if (Busy()) // 
+                {
+                    yield return new WaitTime(1);
+                }
+
+                LogMessage($"Checking Gems to level");
+                // get Gem Lvl Up Windows
+                var Gems = GameController.Game.IngameState.IngameUi.GemLvlUpPanel.GemsToLvlUp;
+
+                if (Gems.Count > 0) // Gems to level exist?
+                {
+                    foreach (var element in Gems)
+                    {
+                        if (element == null) continue;
+
+                        var skillGemButton =
+                            element.GetChildAtIndex(1).GetClientRect();
+
+                        var skillGemText = element.GetChildAtIndex(3).Text;
+                        if (element.GetChildAtIndex(2).IsVisibleLocal) continue;
+
+
+                        if (skillGemText?.ToLower() == "click to level up")
+                            GameController.Debug["GemUp"] = element;
+                    }
+                }
+            }
+        }
+        private bool Busy()
+        {
+            if (Mouse.isLeftButtonPressed() || Mouse.isRightButtonPressed() || Mouse.isMiddleButtonPressed())
+                return true;
+            return false;
+        }
+
+            #endregion
 
         #region Delvewalls
         public void DelveWalls()

@@ -22,12 +22,14 @@ namespace AllInOne
         public HotkeyNode Key09 { get; set; }
         public HotkeyNode Key10 { get; set; }
 
+
+
+        // Q40 Stuff
         [Menu("Hotkey for activation")]
         public HotkeyNode Q40HotKey { get; set; }
 
         [Menu("Enable Q40Picks ")]
         public ToggleNode EnableQ40 { get; set; }
-
 
         [Menu("Maximum Quality to Sell")]
         public RangeNode<int> MaxGemQuality { get; set; }
@@ -41,27 +43,38 @@ namespace AllInOne
         [Menu("Extra Delay between Pickup Klicks Q40 Picker")]
         public RangeNode<int> ExtraDelayQ40 { get; set; }
 
+        // Aura Enabler  
+
         [Menu("Enable Aura Activator ")]
         public ToggleNode EnableAura { get; set; }
 
+
+        // Golem recaster
         [Menu("Enable Golem Recaster ")]
         public ToggleNode EnableGolem { get; set; }
 
 
+        // Resonator  Splitter
         [Menu("Hotkey for activation")]
         public HotkeyNode ResoHotKey { get; set; }
         [Menu("Enable Resonator Split ")]
         public ToggleNode EnableResoSplit { get; set; }
 
 
+        /// <summary>
+        ///  Itemlevel Frame
+        /// </summary>
         [Menu("Enable ItemlevelFrame ")]
         public ToggleNode EnableILFrame { get; set; }
 
+        // Show my skellies
         [Menu("Enable ShowMySkellies ")]
         public ToggleNode EnableSMSkellies { get; set; }
         [Menu("Range check for Skellies")]
         public RangeNode<int> SkellieRange { get; set; }
 
+
+        // Delve Walls
         [Menu("Enable Delve Walls")]
         public ToggleNode EnableDelve { get; set; }
 
@@ -71,6 +84,8 @@ namespace AllInOne
         [Menu("Show Grid")]
         public ToggleNode DelveShowGrid { get; set; }
 
+
+        // Crafter 
         [Menu("Hotkey for activation")]
         public HotkeyNode CraftHotKey { get; set; }
         [Menu("Enable Craftie")]
@@ -87,6 +102,16 @@ namespace AllInOne
         [Menu("Extra Delay between Pickup Klicks Craftie")]
         public RangeNode<int> ExtraDelayCraftie { get; set; }
 
+        // Gem leveling
+        [Menu("Enable Gem leveling")]
+        public ToggleNode EnableGemLeveling { get; set; }
+
+        public ToggleNode GLMobsNear { get; set; }
+
+        public RangeNode<int> GLMobRange { get; set; }
+
+
+
 
         public AllInOneSettings()
         {
@@ -101,22 +126,33 @@ namespace AllInOne
             Key09 = Keys.Control | Keys.R;
             Key10 = Keys.Control | Keys.T;
             //plugin 
-            Q40HotKey = Keys.NumPad1;
-            CraftHotKey = Keys.NumPad2;
-            ResoHotKey = Keys.NumPad3;
 
-            ExtraDelayQ40 = new RangeNode<int>(100, 1, 1000);
-            ExtraDelayCraftie = new RangeNode<int>(100, 1, 1000);
-            UseFlask = new ToggleNode(false);
             Enable = new ToggleNode(false);
+            // Q40 Stuff
+            Q40HotKey = Keys.NumPad1;
+            ExtraDelayQ40 = new RangeNode<int>(100, 1, 1000);
             MaxGemQuality = new RangeNode<int>(18, 1, 19);
             MaxGemLevel = new RangeNode<int>(18, 1, 19);
-            minSlots = new RangeNode<int>(5, 1, 6);
-            minLinks = new RangeNode<int>(5, 1, 6);
+            UseFlask = new ToggleNode(false);
+
+            //Delvewall Stuff
             EnableDelve = new ToggleNode(false);
             DelveMaxRange = new RangeNode<int>(300, 1, 1000);
             DelveShowGrid = new ToggleNode(false);
 
+            // Craftie Stuff
+            CraftHotKey = Keys.NumPad2;
+            ExtraDelayCraftie = new RangeNode<int>(100, 1, 1000);
+            minSlots = new RangeNode<int>(5, 1, 6);
+            minLinks = new RangeNode<int>(5, 1, 6);
+
+            // Resonator splitter
+            ResoHotKey = Keys.NumPad3;
+
+            // Auto Gem Leveling
+            EnableGemLeveling = new ToggleNode(true);
+            GLMobsNear = new ToggleNode(false); 
+            GLMobRange = new RangeNode<int>(100, 1, 400);
         }
     }
 }
