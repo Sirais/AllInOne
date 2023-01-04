@@ -830,7 +830,7 @@ namespace AllInOne
                 List<string> List = new List<string>();
                 foreach (ItemMod m in mods.ItemMods)
                 {
-                    List.Add(m.DisplayName);
+                    List.Add($"{m.DisplayName} [{m.Name}]");
                     //ImGui.BeginListBox("");
                     //ImGui.EndListBox();
                 }
