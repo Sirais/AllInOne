@@ -90,11 +90,11 @@ namespace AllInOne
         {
             ImGuiTreeNodeFlags collapsingHeaderFlags = ImGuiTreeNodeFlags.CollapsingHeader;
 
-            ImGui.PushStyleColor(ImGuiCol.Header,Color.Blue.ToImguiVec4());
+            ImGui.PushStyleColor(ImGuiCol.Header,Color.SeaGreen.ToImguiVec4());
             if (ImGui.TreeNodeEx("Q40 Picker", collapsingHeaderFlags))
             {
                 Settings.EnableQ40.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableQ40);
-                Settings.Q40HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey"+ Settings.Q40HotKey.Value, Settings.Q40HotKey);
+                Settings.Q40HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey ["+ Settings.Q40HotKey.Value+"]", Settings.Q40HotKey);
                 ImGui.Separator();
                 Settings.ExtraDelayQ40.Value = ImGuiExtension.IntSlider("extra Delay between clicks", Settings.ExtraDelayQ40.Value, Settings.ExtraDelayQ40.Min, Settings.ExtraDelayQ40.Max);
                 Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality.Value, Settings.MaxGemQuality.Min, Settings.MaxGemQuality.Max);
@@ -103,7 +103,7 @@ namespace AllInOne
             if (ImGui.TreeNodeEx("Craftie (not yet implemented)", collapsingHeaderFlags))
             {
                 Settings.EnableCraft.Value = ImGuiExtension.Checkbox("Enable Crafting of items", Settings.EnableCraft);
-                Settings.CraftHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey"+ Settings.CraftHotKey.Value, Settings.CraftHotKey);
+                Settings.CraftHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey [" + Settings.CraftHotKey.Value + "]", Settings.CraftHotKey);
                 Settings.ExtraDelayCraftie.Value = ImGuiExtension.IntSlider("extra Delay between crafting clicks", Settings.ExtraDelayCraftie.Value, Settings.ExtraDelayCraftie.Min, Settings.ExtraDelayCraftie.Max);
                 ImGui.Separator();
                 Settings.useScraps.Value = ImGuiExtension.Checkbox("Use Scraps", Settings.useScraps);
@@ -121,7 +121,7 @@ namespace AllInOne
             if (ImGui.TreeNodeEx("Resonator Splitter", collapsingHeaderFlags))
             {
                 Settings.EnableResoSplit.Value = ImGuiExtension.Checkbox("Enable Resonator Splitter", Settings.EnableResoSplit);
-                Settings.ResoHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey"+ Settings.ResoHotKey.Value, Settings.ResoHotKey);
+                Settings.ResoHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey [" + Settings.ResoHotKey.Value + "]", Settings.ResoHotKey);
             }
 
             if (ImGui.TreeNodeEx("Aura enabler (not yet implemented)", collapsingHeaderFlags))
@@ -163,21 +163,23 @@ namespace AllInOne
             if (Settings.EnableGolem) ;
             if (Settings.EnableSMSkellies)
                 ShowMySkellies();
-            //if (Settings.EnableGemLeveling)
-            //    GemLevelUp();
-            
+
+            // Crafting stuff             
             if (Settings.CraftHotKey.PressedOnce())
             {
                 if (Settings.EnableCraft)
                     ToggleCraftie();
             }
-            //if (Settings.ResoHotKey.PressedOnce())
-            //{
-            //    if (Settings.EnableResoSplit)
-            //        Resosplitter();
-            //}
-            if (doCraft)
-                Craftie();
+            if (isCraftingWindowVisible)
+            {
+                if (checkCraftingPossible())
+                {
+                    NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
+                    CraftWindow(itemToCraft);
+                    if (doCraft)
+                        Craftie(itemToCraft);
+                }
+            }
         }
 
         public override Job Tick()
@@ -726,53 +728,37 @@ namespace AllInOne
                 ResetAll("Currency Stash not open");
                 return;
             }
-            //if (isCraftingWindowVisible) // Currently Crafting Window is viisible, so turn it off
-            //{
-            //    ResetAll("");
-            //    return;
-
-            //}
-            doCraft = !doCraft;
-            if (doCraft)
+            if (isCraftingWindowVisible) // Currently Crafting Window is visible, so turn it off
             {
-                timer = DateTime.Now;
-                lastState = 0;
+                ResetAll("");
+                return;
             }
+            isCraftingWindowVisible = true;
+        }
 
-            //LogMessage($"Toggle Craftie. Current State = {doCraft.ToString()}", 1);
-            //isCraftingWindowVisible = !isCraftingWindowVisible; // interactive Window doesnt work at all, so activating via hotkey
+
+        private bool checkCraftingPossible()
+        {
+            if (!ingameUI.StashElement.IsVisible)
+            {
+                ResetAll("stash not open");
+                return false;
+            }
+            if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
+            {
+                ResetAll("Currency Stash not open");
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
         /// 
         /// </summary>
-        private void Craftie()
+        private void Craftie(NormalInventoryItem itemToCraft)
         {
-            //LogMessage($"CraftieState = {doCraft.ToString()}", 1);
-            //if (isCraftingWindowVisible)
-            //{
-            //    if (!ingameUI.StashElement.IsVisible)
-            //    {
-            //        ResetAll($"No Open Stash -> leaving ");
-            //        return;
-            //    }
-            //    if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
-            //    {
-            //        ResetAll($"Crafing only in Curerncy Stash -> leaving");
-            //        return;
-            //    }
+            LogMessage($"CraftieState = {doCraft.ToString()}", 1);
 
-            if (!ingameUI.StashElement.IsVisible)
-            {
-                ResetAll("stash not open");
-                return;
-            }
-            if (ingameUI.StashElement.VisibleStash.InvType != InventoryType.CurrencyStash)
-            {
-                ResetAll("Currency Stash not open");
-                return;
-            }
-            NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
             LogMessage($"item to Craft : {GameController.Files.BaseItemTypes.Translate(itemToCraft.Item.Path).ClassName}", 1, Color.LightBlue);
             if (itemToCraft == null)
             {
@@ -789,9 +775,6 @@ namespace AllInOne
             {
                 CraftIt(itemToCraft);
             }
-
-            //    else
-            //        CraftWindow(itemToCraft);
 
             //}
         }
@@ -826,7 +809,6 @@ namespace AllInOne
         private void CraftWindow(NormalInventoryItem itemToCraft)
         {
 
-            //LogMessage("CraftWindow", 1);
             System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.Position.X + ingameUI.StashElement.VisibleStash.Width, ingameUI.StashElement.VisibleStash.Position.Y);
 
             ImGui.Begin("Craftie");
@@ -840,6 +822,32 @@ namespace AllInOne
             Settings.useFusings.Value = ImGuiExtension.Checkbox("Use Fusings", Settings.useFusings);
             Settings.minLinks.Value = ImGuiExtension.IntSlider("minimum Links", Settings.minLinks.Value, 1, 6);
 
+            Mods mods = itemToCraft.Item.GetComponent<Mods>();
+
+            ImGui.BeginTabBar($"Affixes");
+            if (ImGui.BeginTabItem("All"))
+            {
+                List<string> List = new List<string>();
+                foreach (ItemMod m in mods.ItemMods)
+                {
+                    List.Add(m.DisplayName);
+                    //ImGui.BeginListBox("");
+                    //ImGui.EndListBox();
+                }
+                int Current = 0;
+                ImGui.ListBox("", ref Current, List.ToArray(), List.Count, 5);
+                ImGui.EndTabItem();
+            }
+            if (ImGui.BeginTabItem("Prefixes"))
+            {
+                ImGui.EndTabItem();
+            }
+            if (ImGui.BeginTabItem("Suffixes"))
+            {
+                ImGui.EndTabItem();
+            }
+            ImGui.EndTabBar();
+
 
             if (doCraft)
             {
@@ -848,6 +856,7 @@ namespace AllInOne
             else
             {
                 if (ImGui.Button("Crafit")) doCraft = true;
+
             }
             ImGui.End();
         }
@@ -858,7 +867,6 @@ namespace AllInOne
         /// <param name="itemToCraft"></param>
         public void CraftIt(NormalInventoryItem itemToCraft)
         {
-            //if (!BringToFront()) return;
             var x = itemToCraft;
             string orb = "";
             if (itemToCraft.Item.HasComponent<Quality>() && Settings.useScraps && itemToCraft.Item.GetComponent<Quality>().ItemQuality < 20)
@@ -892,10 +900,8 @@ namespace AllInOne
             }
             else
             {
-                ResetAll("Nothing to do");
                 return;
             }
-
             OrbCrafting(orb, itemToCraft);
             timer = DateTime.Now;
         }
@@ -1023,10 +1029,13 @@ namespace AllInOne
                 while (itm == null && cnt < inventoryItems.Count)
                     foreach (NormalInventoryItem item in inventoryItems)
                     {
-                        if (!item.Item.GetComponent<RenderItem>().ResourcePath.Contains("Currency"))
+                        if (item.Item.GetComponent<RenderItem>() != null) // Skip this, as some "items" are just borders or whatever
                         {
-                            itm = item;
-                            break;
+                            if (!item.Item.GetComponent<RenderItem>().ResourcePath.Contains("Currency"))
+                            {
+                                itm = item;
+                                break;
+                            }
                         }
                     }
             }
