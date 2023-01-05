@@ -1,26 +1,4 @@
-﻿using Druzil.Poe.Libs;
-using ExileCore;
-using ExileCore.PoEMemory;
-using ExileCore.PoEMemory.Components;
-using ExileCore.PoEMemory.Elements;
-using ExileCore.PoEMemory.Elements.InventoryElements;
-using ExileCore.PoEMemory.MemoryObjects;
-using ExileCore.PoEMemory.Models;
-using ExileCore.Shared;
-using ExileCore.Shared.Abstract;
-using ExileCore.Shared.AtlasHelper;
-using ExileCore.Shared.Enums;
-using ExileCore.Shared.Helpers;
-using ImGuiNET;
-using SharpDX;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Threading;
-using System.Windows.Forms;
-using TreeRoutine.Menu;
+﻿using SharpDX;
 
 namespace AllInOne.Misc
 {

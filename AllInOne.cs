@@ -1,6 +1,4 @@
-﻿using AllInOne.Misc;
-using Druzil.Poe.Libs;
-using ExileCore;
+﻿using ExileCore;
 using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.Elements;
@@ -8,8 +6,6 @@ using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.PoEMemory.Models;
 using ExileCore.Shared;
-using ExileCore.Shared.Abstract;
-using ExileCore.Shared.AtlasHelper;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
 using ImGuiNET;
@@ -17,17 +13,13 @@ using SharpDX;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using TreeRoutine.Menu;
 using System.IO;
-using System.Drawing.Text;
 using AllInOne.Misc;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Status;
+using Druzil.Poe.Libs;
 
 namespace AllInOne
 {
@@ -41,18 +33,8 @@ namespace AllInOne
     }
 
 
-
     internal class AllInOne : BaseSettingsPlugin<AllInOneSettings>
     {
-        private bool isCraftingWindowVisible;
-        private bool doCraft;
-        int sockets = 5;
-        int links = 5;
-        private string lastCurrency;
-        private int lastState = 0;
-        private DateTime timer;
-
-
         private Vector2 WindowScale;
 
         private IngameUIElements ingameUI;
@@ -699,6 +681,14 @@ namespace AllInOne
 
         #region Craftie stuff
 
+        private bool isCraftingWindowVisible;
+        private bool doCraft;
+        int sockets = 5;
+        int links = 5;
+        private string lastCurrency;
+        private int lastState = 0;
+        private DateTime timer;
+
         /// <summary>
         /// 
         /// </summary>
@@ -795,7 +785,7 @@ namespace AllInOne
         private void CraftWindow(NormalInventoryItem itemToCraft)
         {
 
-            System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.Position.X + ingameUI.StashElement.VisibleStash.Width, ingameUI.StashElement.VisibleStash.Position.Y);
+            System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.PositionNum.X + ingameUI.StashElement.VisibleStash.Width, ingameUI.StashElement.VisibleStash.PositionNum.Y);
 
             ImGui.Begin("Craftie");
             ImGui.SetNextWindowSizeConstraints(Pos, new System.Numerics.Vector2(300, 300));
