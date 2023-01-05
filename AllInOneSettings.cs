@@ -67,12 +67,6 @@ namespace AllInOne
         [Menu("Enable ItemlevelFrame ")]
         public ToggleNode EnableILFrame { get; set; }
 
-        // Show my skellies
-        [Menu("Enable ShowMySkellies ")]
-        public ToggleNode EnableSMSkellies { get; set; }
-        [Menu("Range check for Skellies")]
-        public RangeNode<int> SkellieRange { get; set; }
-
 
         // Delve Walls
         [Menu("Enable Delve Walls")]

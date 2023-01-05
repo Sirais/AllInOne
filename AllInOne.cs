@@ -132,10 +132,6 @@ namespace AllInOne
             {
                 Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Golem Recaster", Settings.EnableGolem);
             }
-            if (ImGui.TreeNodeEx("ShowMySkellies (Dark Pact Build)", collapsingHeaderFlags))
-            {
-                Settings.EnableSMSkellies.Value = ImGuiExtension.Checkbox("Enable Position and info for skellies", Settings.EnableSMSkellies);
-            }
             if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
             {
                 Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame for Itemlevel (Chaos items)", Settings.EnableILFrame);
@@ -161,8 +157,6 @@ namespace AllInOne
                 DelveWalls();
             if (Settings.EnableAura) ;
             if (Settings.EnableGolem) ;
-            if (Settings.EnableSMSkellies)
-                ShowMySkellies();
 
             // Crafting stuff             
             if (Settings.CraftHotKey.PressedOnce())
@@ -530,14 +524,6 @@ namespace AllInOne
                 }
             }
         }
-        #endregion
-
-        #region Skellie Stuff 
-        private void ShowMySkellies()
-        {
-
-        }
-
         #endregion
 
         #region Gem Leveling Stuff
