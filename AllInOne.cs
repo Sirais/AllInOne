@@ -785,6 +785,10 @@ namespace AllInOne
         private void CraftWindow(NormalInventoryItem itemToCraft)
         {
 
+            Mods mods = itemToCraft.Item.GetComponent<Mods>();
+            
+
+
             System.Numerics.Vector2 Pos = new System.Numerics.Vector2(ingameUI.StashElement.VisibleStash.PositionNum.X + ingameUI.StashElement.VisibleStash.Width, ingameUI.StashElement.VisibleStash.PositionNum.Y);
 
             ImGui.Begin("Craftie");
@@ -792,13 +796,14 @@ namespace AllInOne
 
             ImGui.TextColored(Color.Yellow.ToImguiVec4(), GameController.Files.BaseItemTypes.Translate(itemToCraft.Item.Path).ClassName);
 
-            Settings.useScraps.Value = ImGuiExtension.Checkbox("Use Scraps", Settings.useScraps);
-            Settings.useJewellers.Value = ImGuiExtension.Checkbox("Use Jewellers", Settings.useJewellers);
-            Settings.minSlots.Value = ImGuiExtension.IntSlider("minimum Slots", Settings.minSlots.Value, 1, 6);
-            Settings.useFusings.Value = ImGuiExtension.Checkbox("Use Fusings", Settings.useFusings);
-            Settings.minLinks.Value = ImGuiExtension.IntSlider("minimum Links", Settings.minLinks.Value, 1, 6);
-
-            Mods mods = itemToCraft.Item.GetComponent<Mods>();
+            if (itemToCraft.Item.HasComponent<Sockets>()) // Stuff for Items with links
+            {
+                Settings.useScraps.Value = ImGuiExtension.Checkbox("Use Scraps", Settings.useScraps);
+                Settings.useJewellers.Value = ImGuiExtension.Checkbox("Use Jewellers", Settings.useJewellers);
+                Settings.minSlots.Value = ImGuiExtension.IntSlider("minimum Slots", Settings.minSlots.Value, 1, 6);
+                Settings.useFusings.Value = ImGuiExtension.Checkbox("Use Fusings", Settings.useFusings);
+                Settings.minLinks.Value = ImGuiExtension.IntSlider("minimum Links", Settings.minLinks.Value, 1, 6);
+            }
 
             ImGui.BeginTabBar($"Affixes");
             if (ImGui.BeginTabItem("All"))
