@@ -43,12 +43,6 @@ namespace AllInOne
         [Menu("Extra Delay between Pickup Klicks Q40 Picker")]
         public RangeNode<int> ExtraDelayQ40 { get; set; }
 
-        // Aura Enabler  
-
-        [Menu("Enable Aura Activator ")]
-        public ToggleNode EnableAura { get; set; }
-
-
         // Golem recaster
         [Menu("Enable Golem Recaster ")]
         public ToggleNode EnableGolem { get; set; }
@@ -122,31 +116,44 @@ namespace AllInOne
             //plugin 
 
             Enable = new ToggleNode(false);
-            // Q40 Stuff
+            #region Q40 Stuff
             Q40HotKey = Keys.NumPad1;
+            EnableQ40 = new ToggleNode(true);
             ExtraDelayQ40 = new RangeNode<int>(100, 1, 1000);
             MaxGemQuality = new RangeNode<int>(18, 1, 19);
             MaxGemLevel = new RangeNode<int>(18, 1, 19);
             UseFlask = new ToggleNode(false);
+            #endregion
 
-            //Delvewall Stuff
+            #region Delvewall Stuff
             EnableDelve = new ToggleNode(false);
             DelveMaxRange = new RangeNode<int>(300, 1, 1000);
             DelveShowGrid = new ToggleNode(false);
+            #endregion
 
-            // Craftie Stuff
+            #region Craftie Stuff
+            EnableCraft = new ToggleNode(false);
             CraftHotKey = Keys.NumPad2;
             ExtraDelayCraftie = new RangeNode<int>(100, 1, 1000);
             minSlots = new RangeNode<int>(5, 1, 6);
             minLinks = new RangeNode<int>(5, 1, 6);
+            useScraps = new ToggleNode(true);
+            useJewellers = new ToggleNode(true);
+            useFusings = new ToggleNode(true);
+            #endregion
 
-            // Resonator splitter
+            #region Resonator splitter
+            EnableResoSplit = new ToggleNode(false);
             ResoHotKey = Keys.NumPad3;
+            #endregion
 
-            // Auto Gem Leveling
+            #region Auto Gem Leveling
             EnableGemLeveling = new ToggleNode(true);
             GLMobsNear = new ToggleNode(false); 
             GLMobRange = new RangeNode<int>(100, 1, 400);
+            #endregion
+
+            EnableILFrame = new ToggleNode(false);
         }
     }
 }

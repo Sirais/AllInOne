@@ -1,4 +1,6 @@
-﻿using ExileCore;
+﻿using AllInOne.Misc;
+using Druzil.Poe.Libs;
+using ExileCore;
 using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.Elements;
@@ -9,17 +11,17 @@ using ExileCore.Shared;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
 using ImGuiNET;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SharpDX;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using TreeRoutine.Menu;
-using System.IO;
-using AllInOne.Misc;
-using Druzil.Poe.Libs;
 
 namespace AllInOne
 {
@@ -32,6 +34,16 @@ namespace AllInOne
 
     }
 
+    public class Unique
+    {
+        public string name { get; set; }
+        public string baseType { get; set; }
+        public int dustValIlvl84 { get; set; }
+        public int dustValIlvl84Q20 { get; set; }
+        public int slots { get; set; }
+        public bool ownedInStd { get; set; }
+    }
+
 
     internal class AllInOne : BaseSettingsPlugin<AllInOneSettings>
     {
@@ -39,6 +51,7 @@ namespace AllInOne
 
         private IngameUIElements ingameUI;
 
+        public List<Unique> Uniques { get; set; }
 
         public AllInOne()
         {
@@ -50,6 +63,7 @@ namespace AllInOne
             //Load Graphics for Delve Walls 
             Graphics.InitImage("directions.png");
             Graphics.InitImage("Icons.png");
+            LoadOrCreateUniques();
         }
 
         public override bool Initialise()
@@ -72,11 +86,12 @@ namespace AllInOne
         {
             ImGuiTreeNodeFlags collapsingHeaderFlags = ImGuiTreeNodeFlags.CollapsingHeader;
 
-            ImGui.PushStyleColor(ImGuiCol.Header,Color.SeaGreen.ToImguiVec4());
+            ImGui.PushStyleColor(ImGuiCol.Header, Color.SeaGreen.ToImguiVec4());
             if (ImGui.TreeNodeEx("Q40 Picker", collapsingHeaderFlags))
             {
-                Settings.EnableQ40.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableQ40);
-                Settings.Q40HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey ["+ Settings.Q40HotKey.Value+"]", Settings.Q40HotKey);
+                if (Settings.EnableQ40 != null)
+                    Settings.EnableQ40.Value = ImGuiExtension.Checkbox("Enable Q40", Settings.EnableQ40);
+                Settings.Q40HotKey.Value = ImGuiExtension.HotkeySelector("Hotkey [" + Settings.Q40HotKey.Value + "]", Settings.Q40HotKey);
                 ImGui.Separator();
                 Settings.ExtraDelayQ40.Value = ImGuiExtension.IntSlider("extra Delay between clicks", Settings.ExtraDelayQ40.Value, Settings.ExtraDelayQ40.Min, Settings.ExtraDelayQ40.Max);
                 Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality.Value, Settings.MaxGemQuality.Min, Settings.MaxGemQuality.Max);
@@ -106,17 +121,14 @@ namespace AllInOne
                 Settings.ResoHotKey.Value = ImGuiExtension.HotkeySelector("Hotkey [" + Settings.ResoHotKey.Value + "]", Settings.ResoHotKey);
             }
 
-            if (ImGui.TreeNodeEx("Aura enabler (not yet implemented)", collapsingHeaderFlags))
-            {
-                Settings.EnableAura.Value = ImGuiExtension.Checkbox("Enable Aura Recaster", Settings.EnableAura);
-            }
-            if (ImGui.TreeNodeEx("Golem recaster (not yet implemented)", collapsingHeaderFlags))
-            {
-                Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Golem Recaster", Settings.EnableGolem);
-            }
-            if (ImGui.TreeNodeEx("Itemlevel Frame", collapsingHeaderFlags))
+            //if (ImGui.TreeNodeEx("Golem recaster (not yet implemented)", collapsingHeaderFlags))
+            //{
+            //    Settings.EnableGolem.Value = ImGuiExtension.Checkbox("Enable Golem Recaster", Settings.EnableGolem);
+            //}
+            if (ImGui.TreeNodeEx("Item Marker", collapsingHeaderFlags))
             {
                 Settings.EnableILFrame.Value = ImGuiExtension.Checkbox("Enable Frame for Itemlevel (Chaos items)", Settings.EnableILFrame);
+                //Settings.BetrayalNames.Value = ImGuiExtension.Checkbox("Show Betrayal Names", Settings.BetrayalNames);
             }
             if (ImGui.TreeNodeEx("Gem Leveling", collapsingHeaderFlags))
             {
@@ -125,6 +137,7 @@ namespace AllInOne
                 if (Settings.GLMobRange != null) // just debugging as i get a null pointer
                     Settings.GLMobRange.Value = ImGuiExtension.IntSlider("Range to check for mobs", Settings.GLMobRange.Value, Settings.GLMobRange.Min, Settings.GLMobRange.Max);
             }
+
         }
 
         public override void Render()
@@ -133,29 +146,49 @@ namespace AllInOne
             if (!Settings.Enable.Value) // Plugin enabled ?
                 return; // no, do nothing
             // Automatic routines
-            if (Settings.EnableILFrame)
+            if (Settings.EnableILFrame)// || Settings.BetrayalNames)
                 MarkILvl();
             if (Settings.EnableDelve)
                 DelveWalls();
-            if (Settings.EnableAura) ;
-            if (Settings.EnableGolem) ;
+            //if (Settings.EnableGolem) ;
 
             // Crafting stuff             
-            if (Settings.CraftHotKey.PressedOnce())
-            {
-                if (Settings.EnableCraft)
-                    ToggleCraftie();
-            }
-            if (isCraftingWindowVisible)
-            {
-                if (checkCraftingPossible())
-                {
-                    NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
-                    CraftWindow(itemToCraft);
-                    if (doCraft)
-                        Craftie(itemToCraft);
-                }
-            }
+            //if (Settings.CraftHotKey.PressedOnce())
+            //{
+            //    if (Settings.EnableCraft)
+            //        ToggleCraftie();
+            //}
+            //if (isCraftingWindowVisible)
+            //{
+            //    if (checkCraftingPossible())
+            //    {
+            //        NormalInventoryItem itemToCraft = CraftingItemFromCurrencyStash();
+            //        CraftWindow(itemToCraft);
+            //        if (doCraft)
+            //            Craftie(itemToCraft);
+            //    }
+            //}
+            RenderItem();
+        }
+
+        private void RenderItem()
+        {
+            var hover = GameController.Game.IngameState.UIHover;
+            if (hover == null || !hover.IsVisible)
+                return;
+            var hoverItemIcon = hover.AsObject<HoverItemIcon>();
+            if (hoverItemIcon == null)
+                return;
+            var item = hoverItemIcon.Item;
+            if (item == null)
+                return;
+            var mods = item.GetComponent<Mods>();
+            if (mods == null)
+                return;
+            LogMessage($"Itemname : {item.RenderName}");
+            var rect = hoverItemIcon.GetClientRect();
+            //Graphics.DrawFrame(rect, Color.AliceBlue, 1);
+            //Graphics.DrawText($"ILvl: {mods.ItemLevel}", new Vector2(rect.X + 2, rect.Y + 2), Color.AliceBlue, 15);
         }
 
         public override Job Tick()
@@ -262,7 +295,6 @@ namespace AllInOne
         }
 
 
-
         private bool Q40canStart()
         {
             if (!ingameUI.StashElement.IsVisible && !ingameUI.SellWindow.IsVisible)
@@ -319,16 +351,13 @@ namespace AllInOne
             LogMessage($"testing {inventoryItems.Count} items");
             if (inventoryItems != null)
             {
-                //LogMessage($"items in Stash {ingameUI.StashElement.VisibleStash.VisibleInventoryItems.ToString()}: {inventoryItems.Count}", 10);
                 int cnt = 1;
                 foreach (NormalInventoryItem item in inventoryItems)
                 {
                     BaseItemType baseItemType = GameController.Files.BaseItemTypes.Translate(item.Item.Path);
-
                     if (baseItemType.ClassName.Contains(itemtype))
                     {
                         int Quality = item.Item.GetComponent<Quality>().ItemQuality;
-                        //LogMessage($"item {cnt} : Quality = {Quality}",10);
                         if (Quality > 0)
                             if (Quality <= Settings.MaxGemQuality)
                                 res.Add(new QualityItem(item, Quality));
@@ -338,8 +367,6 @@ namespace AllInOne
             }
             return res;
         }
-
-
 
         #endregion
 
@@ -475,35 +502,66 @@ namespace AllInOne
             var visibleStash = stashPanel.VisibleStash;
             if (visibleStash == null)
                 return;
-            if (!((visibleStash.InvType != InventoryType.NormalStash) || (visibleStash.InvType != InventoryType.QuadStash)))
+            if (!((visibleStash.InvType == InventoryType.NormalStash) || (visibleStash.InvType == InventoryType.QuadStash)))
             {
                 return;
             }
-
             IList<NormalInventoryItem> inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
             if (inventoryItems == null)
                 return;
             foreach (NormalInventoryItem item in inventoryItems)
             {
                 var mods = item.Item?.GetComponent<Mods>();
-
-                if (mods?.ItemRarity == ItemRarity.Rare)
-                {
-                    var borderColor = Color.White;
-                    if (mods.ItemLevel < 60)
-                        borderColor = Color.DarkGray;
-                    else if (mods.ItemLevel < 75)
-                        borderColor = Color.Yellow;
-                    else
-                        borderColor = Color.Green;
-                    var rect = item.GetClientRect();
-                    rect.X += 2;
-                    rect.Y += 2;
-                    rect.Width -= 4;
-                    rect.Height -= 4;
-                    Graphics.DrawFrame(rect, borderColor, 1);
-
+                var rect = item.GetClientRect();
+                if (Settings.EnableILFrame)
+                { 
+                    if (mods?.ItemRarity == ItemRarity.Rare)
+                    {
+                        var borderColor = Color.White;
+                        if (mods.ItemLevel < 60)
+                            borderColor = Color.DarkGray;
+                        else if (mods.ItemLevel < 75)
+                            borderColor = Color.Yellow;
+                        else
+                            borderColor = Color.Green;
+                        var drawRect = rect;
+                        drawRect.X += 2;
+                        drawRect.Y += 2;
+                        drawRect.Width -= 4;
+                        drawRect.Height -= 4;
+                        Graphics.DrawFrame(drawRect, borderColor, 1);
+                    }
                 }
+                //if (Settings.BetrayalNames)
+                //{
+                //    foreach (var Expl in mods?.ExplicitMods)
+                //    {
+                //        //LogMessage(Expl.DisplayName, 1);
+                //        if (Expl.DisplayName.ToLower().Contains("'s veil"))
+                //        {
+                //            var txtColor = Color.White;
+                //            string txt;
+                //            if (Expl.DisplayName.Substring(0, 2) == "of")
+                //            {
+                //                txt = Expl.DisplayName.Substring(3, Expl.DisplayName.IndexOf('\'') - 3);
+                //                txtColor = Color.Red;
+                //            }
+                //            else
+                //            {
+                //                txt = Expl.DisplayName.Substring(0, Expl.DisplayName.IndexOf('\''));
+                //                txtColor = Color.Blue;
+                //            }
+                //            //string txt = Expl.DisplayName;
+                //            Graphics.DrawText(txt, new Vector2(rect.X + 2, rect.Y + 2), txtColor, 15);
+                //            var drawRect = rect;
+                //            drawRect.X += 1;
+                //            drawRect.Y += 1;
+                //            drawRect.Width -= 3;
+                //            drawRect.Height -= 3;
+                //            //Graphics.DrawFrame(drawRect, Color.White, 1);
+                //        }
+                //    }
+                //}
             }
         }
         #endregion
@@ -1186,6 +1244,51 @@ namespace AllInOne
         }
 
         #endregion
+
+
+
+
+        private void LoadOrCreateUniques()
+        {
+            string path = Path.Combine(DirectoryFullName, "Data", "Uniques.json");
+            LogMessage($"Uniques Path : {path} ", 60,Color.Gold);
+            if (File.Exists(path))
+            {
+                LoadUniques(path);
+            }
+            if (Uniques == null)
+            {
+                Uniques = new List<Unique>();
+            }
+            LogMessage($"Uniques Loaded : {Uniques.Count} ", 60,Color.Gold);
+        }
+
+        private void SaveUniques(string path)
+        {
+            using (StreamWriter file = File.CreateText(path))
+            {
+                string json = JsonConvert.SerializeObject(Uniques, Formatting.Indented);
+                file.Write(json);
+            }
+        }
+
+
+        private void LoadUniques(string path)
+        {
+            LogMessage($"Loading Uniques", 60, Color.Gold);
+                
+            string json = File.ReadAllText(path);
+            try
+            {
+                Uniques = JsonConvert.DeserializeObject<List<Unique>>(json);
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidDataException("Invalid JSON format.", ex);
+            }
+        }
+
+
 
     }
 
