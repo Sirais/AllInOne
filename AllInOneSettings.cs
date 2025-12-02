@@ -104,7 +104,7 @@ namespace AllInOne
 
         public RangeNode<int> GLMobRange { get; set; }
 
-
+        public ToggleNode EnableCraftInfo { get; set; }
 
 
         public AllInOneSettings()
@@ -147,6 +147,8 @@ namespace AllInOne
             EnableGemLeveling = new ToggleNode(true);
             GLMobsNear = new ToggleNode(false); 
             GLMobRange = new RangeNode<int>(100, 1, 400);
+
+            EnableCraftInfo = new ToggleNode(false);
         }
     }
 }
