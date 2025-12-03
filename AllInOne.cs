@@ -1,7 +1,7 @@
-﻿using AllInOne.Misc;
+﻿using AllInOne.MapMod;
+using AllInOne.Misc;
 using Druzil.Poe.Libs;
 using ExileCore;
-using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.Elements;
 using ExileCore.PoEMemory.Elements.InventoryElements;
@@ -12,20 +12,14 @@ using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
 using ImGuiNET;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using SharpDX;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Windows.Forms;
 using TreeRoutine.Menu;
-using System.IO;
-using AllInOne.Misc;
-using AllInOne.MapMod;
-using Druzil.Poe.Libs;
 
 namespace AllInOne
 {
@@ -70,6 +64,13 @@ namespace AllInOne
             Graphics.InitImage("Icons.png");
             LoadOrCreateUniques();
         }
+
+        public override void OnClose()
+        {
+            SaveUniques();
+            base.OnClose();
+        }
+
 
         public override bool Initialise()
         {
@@ -184,6 +185,7 @@ namespace AllInOne
 
         private void RenderItem()
         {
+            NormalInventoryItem Itm = GameController.Game.IngameState.UIHover.AsObject<NormalInventoryItem>(); // get the MouseoverElement
             var hover = GameController.Game.IngameState.UIHover;
             if (hover == null || !hover.IsVisible)
                 return;
@@ -196,11 +198,48 @@ namespace AllInOne
             var mods = item.GetComponent<Mods>();
             if (mods == null)
                 return;
-            LogMessage($"Itemname : {item.RenderName}");
-            var rect = hoverItemIcon.GetClientRect();
-            //Graphics.DrawFrame(rect, Color.AliceBlue, 1);
-            //Graphics.DrawText($"ILvl: {mods.ItemLevel}", new Vector2(rect.X + 2, rect.Y + 2), Color.AliceBlue, 15);
+            string UniqueItemName = mods.UniqueName;
+            Unique result = Uniques.FirstOrDefault(x => x.name == UniqueItemName);
+            LogMessage($"Itemname : {UniqueItemName}, Disenchant Value:{result?.dustValIlvl84}");
+//            LogMessage($"Itemname : {UniqueItemName}, League:{GameController.Game.IngameState.ServerData.League}");
+            //if (result != null  && GameController.Game.IngameState.ServerData.League=="Standard")
+            //    result.ownedInStd = true;
+            //var rect = hoverItemIcon.GetClientRect();
+            ////Graphics.DrawFrame(rect, Color.AliceBlue, 1);
+            ////Graphics.DrawText($"ILvl: {mods.ItemLevel}", new Vector2(rect.X + 2, rect.Y + 2), Color.AliceBlue, 15);
+            ////return GameController.Game.IngameState.ServerData.PlayerStashTabs..VisibleStash.VisibleInventoryItems;
+            //var x = GameController.Game.IngameState.IngameUi.StashElement.VisibleStash;
+            //var y= GameController.Game.IngameState.IngameUi.StashElement.Type
+            //x.Tab
+            //foreach (ServerStashTab tb in  GameController.Game.IngameState.ServerData.PlayerStashTabs)
+            //    if (tb.TabType == InventoryTabType.Unique)
+            //    {
+            //        tb.
+            //    }
         }
+
+        //private (int stashIndex, List<NormalInventoryItem>) GetStashItems()
+        //{
+            //var result = new List<NormalInventoryItem>();
+            //var stashIndex = -1;
+            //if (GameController.Game.IngameState?.IngameUi?.StashElement?.IsVisible == true &&
+            //    GameController.Game.IngameState.IngameUi.StashElement.VisibleStash != null)
+            //{
+            //    stashIndex = GameController.Game.IngameState.IngameUi.StashElement.IndexVisibleStash;
+
+            //    var visibleInv = GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.VisibleInventoryItems;
+            //    if (visibleInv != null && visibleInv.Count > 0)
+            //    {
+            //        foreach (var it in visibleInv)
+            //        {
+            //            if (it?.Item != null && it.Item.HasComponent<Unique>())
+            //                result.Add(it);
+            //        }
+            //    }
+            //}
+            //return (stashIndex, result);
+        //}
+
 
         public override Job Tick()
         {
@@ -1303,6 +1342,8 @@ namespace AllInOne
         private void LoadOrCreateUniques()
         {
             string path = Path.Combine(DirectoryFullName, "Data", "Uniques.json");
+            if (File.Exists(Path.Combine(DirectoryFullName, "Data", "Uniques_own.json")))
+                path = Path.Combine(DirectoryFullName, "Data", "Uniques_own.json");
             LogMessage($"Uniques Path : {path} ", 60,Color.Gold);
             if (File.Exists(path))
             {
@@ -1315,8 +1356,9 @@ namespace AllInOne
             LogMessage($"Uniques Loaded : {Uniques.Count} ", 60,Color.Gold);
         }
 
-        private void SaveUniques(string path)
+        private void SaveUniques()
         {
+            string path = Path.Combine(DirectoryFullName, "Data", "Uniques_own.json");
             using (StreamWriter file = File.CreateText(path))
             {
                 string json = JsonConvert.SerializeObject(Uniques, Formatting.Indented);
