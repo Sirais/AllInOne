@@ -20,6 +20,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using TreeRoutine.Menu;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace AllInOne
 {
@@ -181,6 +182,7 @@ namespace AllInOne
             //    }
             //}
             RenderItem();
+            FindUniques();
         }
 
         private void RenderItem()
@@ -218,14 +220,66 @@ namespace AllInOne
             //    }
         }
 
+        [Obsolete]
+        private void FindUniques()
+        {
+            var stashPanel = ingameUI.StashElement;
+            if (!stashPanel.IsVisible)
+                return;
+            var visibleStash = stashPanel.VisibleStash;
+            if (visibleStash == null)
+                return;
+            if (!((visibleStash.InvType == InventoryType.NormalStash) || (visibleStash.InvType == InventoryType.QuadStash)))
+            {
+                return;
+            }
+            IList<NormalInventoryItem> inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
+            if (inventoryItems == null)
+                return;
+            foreach (NormalInventoryItem item in inventoryItems)
+            {
+                //LogMessage($"Checking items");
+                Mods mods = item.Item.GetComponent<Mods>();
+                if (mods != null)
+                { 
+                    string UniqueItemName = mods.UniqueName;
+
+                    //var mods = item.Item?.GetComponent<Mods>();
+                    //LogMessage($"Checking item {UniqueItemName} -> Unique ");
+                    //LogMessage($"Checking item {mods.ItemRarity.ToString()}");
+
+                    Unique result = Uniques.FirstOrDefault(x => x.name == UniqueItemName);
+                    if (result != null)
+                    {
+                        var rect = item.GetClientRect();
+                        string txt = mods.UniqueName;
+                        Graphics.DrawText(result.dustValIlvl84.ToString(), new Vector2(rect.X + 1, rect.Y + 1), Color.White, 15);
+                        //var borderColor = Color.White;
+                        //if (mods.ItemLevel < 60)
+                        //    borderColor = Color.DarkGray;
+                        //else if (mods.ItemLevel < 75)
+                        //    borderColor = Color.Yellow;
+                        //else
+                        //    borderColor = Color.Green;
+                        //var drawRect = rect;
+                        //drawRect.X += 2;
+                        //drawRect.Y += 2;
+                        //drawRect.Width -= 4;
+                        //drawRect.Height -= 4;
+                        //Graphics.DrawFrame(drawRect, borderColor, 1);
+                    }
+
+                }
+            }
+        }
         //private (int stashIndex, List<NormalInventoryItem>) GetStashItems()
         //{
-            //var result = new List<NormalInventoryItem>();
-            //var stashIndex = -1;
-            //if (GameController.Game.IngameState?.IngameUi?.StashElement?.IsVisible == true &&
-            //    GameController.Game.IngameState.IngameUi.StashElement.VisibleStash != null)
-            //{
-            //    stashIndex = GameController.Game.IngameState.IngameUi.StashElement.IndexVisibleStash;
+        //var result = new List<NormalInventoryItem>();
+        //var stashIndex = -1;
+        //if (GameController.Game.IngameState?.IngameUi?.StashElement?.IsVisible == true &&
+        //    GameController.Game.IngameState.IngameUi.StashElement.VisibleStash != null)
+        //{
+        //    stashIndex = GameController.Game.IngameState.IngameUi.StashElement.IndexVisibleStash;
 
             //    var visibleInv = GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.VisibleInventoryItems;
             //    if (visibleInv != null && visibleInv.Count > 0)
@@ -238,7 +292,7 @@ namespace AllInOne
             //    }
             //}
             //return (stashIndex, result);
-        //}
+            //}
 
 
         public override Job Tick()
@@ -642,7 +696,7 @@ namespace AllInOne
                 //                txt = Expl.DisplayName.Substring(0, Expl.DisplayName.IndexOf('\''));
                 //                txtColor = Color.Blue;
                 //            }
-                //            //string txt = Expl.DisplayName;
+                //            txt = Expl.DisplayName;
                 //            Graphics.DrawText(txt, new Vector2(rect.X + 2, rect.Y + 2), txtColor, 15);
                 //            var drawRect = rect;
                 //            drawRect.X += 1;
