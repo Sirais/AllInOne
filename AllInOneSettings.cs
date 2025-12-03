@@ -98,7 +98,7 @@ namespace AllInOne
 
         public RangeNode<int> GLMobRange { get; set; }
 
-
+        public ToggleNode EnableCraftInfo { get; set; }
 
 
         public AllInOneSettings()

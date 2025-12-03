@@ -33,8 +33,6 @@ namespace Druzil.Poe.Libs
         }
     }
 
-
-
     public class SetFinder
     {
         private readonly List<setData> _numbers;

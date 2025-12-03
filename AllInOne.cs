@@ -22,6 +22,10 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using TreeRoutine.Menu;
+using System.IO;
+using AllInOne.Misc;
+using AllInOne.MapMod;
+using Druzil.Poe.Libs;
 
 namespace AllInOne
 {
@@ -51,11 +55,12 @@ namespace AllInOne
 
         private IngameUIElements ingameUI;
 
+        private  MapMods _mapMods;
         public List<Unique> Uniques { get; set; }
 
         public AllInOne()
         {
-
+            _mapMods = new MapMods();
         }
 
         public override void OnLoad()
@@ -80,6 +85,8 @@ namespace AllInOne
         public override void AreaChange(AreaInstance area)
         {
             ingameUI = GameController.IngameState.IngameUi;
+
+            //_mapMods.GetMapMods(area,GameController.IngameState.Data);
         }
 
         public override void DrawSettings()
@@ -96,6 +103,10 @@ namespace AllInOne
                 Settings.ExtraDelayQ40.Value = ImGuiExtension.IntSlider("extra Delay between clicks", Settings.ExtraDelayQ40.Value, Settings.ExtraDelayQ40.Min, Settings.ExtraDelayQ40.Max);
                 Settings.MaxGemQuality.Value = ImGuiExtension.IntSlider("Maximum Quality to Sell", Settings.MaxGemQuality.Value, Settings.MaxGemQuality.Min, Settings.MaxGemQuality.Max);
                 Settings.MaxGemLevel.Value = ImGuiExtension.IntSlider("Maximum Gem level to Sell", Settings.MaxGemLevel.Value, Settings.MaxGemLevel.Min, Settings.MaxGemLevel.Max);
+            }
+            if (ImGui.TreeNodeEx("Craft Info", collapsingHeaderFlags))
+            {
+                Settings.EnableCraftInfo.Value = ImGuiExtension.Checkbox("Enable CraftInfo", Settings.EnableCraftInfo);
             }
             if (ImGui.TreeNodeEx("Craftie (not yet implemented)", collapsingHeaderFlags))
             {
@@ -367,6 +378,47 @@ namespace AllInOne
                 }
             }
             return res;
+        }
+
+
+
+        #endregion
+
+        #region CraftInfo
+
+        private void CraftInfo()
+        {
+
+            NormalInventoryItem item = GameController.IngameState.UIHover.AsObject<NormalInventoryItem>();
+            if (item != null)
+            {
+                Mods mods = item.Item?.GetComponent<Mods>();
+                if (mods != null)
+                {
+                    if (mods.ItemMods.Count > 0)
+                    {
+                        foreach (ItemMod m in mods.ItemMods)
+                        {
+                            LogMessage($"{m.Name}", 1);
+                        }
+                        //foreach (ItemMod m in mods.EnchantedMods)
+                        //{
+                        //    LogMessage($"{m.DisplayName} - {m.DisplayName} - {m.Name} - {m.RawName}", 1);
+                        //}
+                        //foreach (string m in mods.EnchantedStats)
+                        //{
+                        //    LogMessage($"{m}", 1);
+                        //}
+
+                    }
+                    //ItemType = ItemTypes.ClusterJewel;
+                    //var passiveCount = itemEntity.GetComponent<LocalStats>()?.StatDictionary.GetValueOrDefault(ClusterJewelPassiveCountStat) ?? 0;
+                    //const string namePrefix = "Added Small Passive Skills grant: ";
+                    //var name = itemEntity.GetComponent<Mods>()?.EnchantedStats.FirstOrDefault(x => x.StartsWith(namePrefix))?.Replace(namePrefix, null)?.Replace("\n", ", ");
+                    //ClusterJewelData = new ClusterJewelData(name, passiveCount);
+
+                }
+            }
         }
 
         #endregion
