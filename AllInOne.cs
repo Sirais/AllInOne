@@ -173,20 +173,21 @@ namespace AllInOne
 
         private void RenderItem()
         {
-            var hover = GameController.Game.IngameState.UIHover;
+            Element hover = GameController.Game.IngameState.UIHover;
             if (hover == null || !hover.IsVisible)
                 return;
-            var hoverItemIcon = hover.AsObject<HoverItemIcon>();
+            HoverItemIcon hoverItemIcon = hover.AsObject<HoverItemIcon>();
             if (hoverItemIcon == null)
                 return;
-            var item = hoverItemIcon.Item;
+            Entity item = hoverItemIcon.Item;
             if (item == null)
                 return;
-            var mods = item.GetComponent<Mods>();
+            Mods mods = item.GetComponent<Mods>();
             if (mods == null)
                 return;
-            LogMessage($"Itemname : {item.RenderName}");
-            var rect = hoverItemIcon.GetClientRect();
+            RenderItem renderItem = item.GetComponent<RenderItem>();
+            LogMessage($"Itemname : {renderItem.ToString}");
+            RectangleF rect = hoverItemIcon.GetClientRect();
             //Graphics.DrawFrame(rect, Color.AliceBlue, 1);
             //Graphics.DrawText($"ILvl: {mods.ItemLevel}", new Vector2(rect.X + 2, rect.Y + 2), Color.AliceBlue, 15);
         }
