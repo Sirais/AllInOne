@@ -10,6 +10,7 @@ using ExileCore.PoEMemory.Models;
 using ExileCore.Shared;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
+using ExileCore.Shared.Nodes;
 using ImGuiNET;
 using Newtonsoft.Json;
 using SharpDX;
@@ -72,7 +73,6 @@ namespace AllInOne
             base.OnClose();
         }
 
-
         public override bool Initialise()
         {
             ingameUI = GameController.IngameState.IngameUi;
@@ -87,8 +87,6 @@ namespace AllInOne
         public override void AreaChange(AreaInstance area)
         {
             ingameUI = GameController.IngameState.IngameUi;
-
-            //_mapMods.GetMapMods(area,GameController.IngameState.Data);
         }
 
         public override void DrawSettings()
@@ -150,6 +148,13 @@ namespace AllInOne
                 if (Settings.GLMobRange != null) // just debugging as i get a null pointer
                     Settings.GLMobRange.Value = ImGuiExtension.IntSlider("Range to check for mobs", Settings.GLMobRange.Value, Settings.GLMobRange.Min, Settings.GLMobRange.Max);
             }
+            if (ImGui.TreeNodeEx("Disenchantment Display", collapsingHeaderFlags))
+            {
+                Settings.EnableDisenchantment.Value = ImGuiExtension.Checkbox("Enanble Display", Settings.EnableDisenchantment);
+                Settings.Valuedisplay.Value = ImGuiExtension.Checkbox("uncheced = Display Value, Checked = display value per slot", Settings.Valuedisplay);
+                Settings.ValueThreshold.Value = ImGuiExtension.IntSlider("display Border on value per slot is higher", Settings.ValueThreshold);
+            }
+
 
         }
 
@@ -181,7 +186,7 @@ namespace AllInOne
             //            Craftie(itemToCraft);
             //    }
             //}
-            RenderItem();
+            //RenderItem();
             FindUniques();
         }
 
@@ -203,97 +208,78 @@ namespace AllInOne
             string UniqueItemName = mods.UniqueName;
             Unique result = Uniques.FirstOrDefault(x => x.name == UniqueItemName);
             LogMessage($"Itemname : {UniqueItemName}, Disenchant Value:{result?.dustValIlvl84}");
-//            LogMessage($"Itemname : {UniqueItemName}, League:{GameController.Game.IngameState.ServerData.League}");
-            //if (result != null  && GameController.Game.IngameState.ServerData.League=="Standard")
-            //    result.ownedInStd = true;
-            //var rect = hoverItemIcon.GetClientRect();
-            ////Graphics.DrawFrame(rect, Color.AliceBlue, 1);
-            ////Graphics.DrawText($"ILvl: {mods.ItemLevel}", new Vector2(rect.X + 2, rect.Y + 2), Color.AliceBlue, 15);
-            ////return GameController.Game.IngameState.ServerData.PlayerStashTabs..VisibleStash.VisibleInventoryItems;
-            //var x = GameController.Game.IngameState.IngameUi.StashElement.VisibleStash;
-            //var y= GameController.Game.IngameState.IngameUi.StashElement.Type
-            //x.Tab
-            //foreach (ServerStashTab tb in  GameController.Game.IngameState.ServerData.PlayerStashTabs)
-            //    if (tb.TabType == InventoryTabType.Unique)
-            //    {
-            //        tb.
-            //    }
         }
 
         [Obsolete]
         private void FindUniques()
         {
+            if (!Settings.EnableDisenchantment)
+                return; 
             var stashPanel = ingameUI.StashElement;
-            if (!stashPanel.IsVisible)
-                return;
-            var visibleStash = stashPanel.VisibleStash;
-            if (visibleStash == null)
-                return;
-            if (!((visibleStash.InvType == InventoryType.NormalStash) || (visibleStash.InvType == InventoryType.QuadStash)))
-            {
-                return;
+            if (stashPanel.IsVisible)
+            { 
+                var visibleStash = stashPanel.VisibleStash;
+                if (visibleStash != null)
+                    if (((visibleStash.InvType == InventoryType.NormalStash) || (visibleStash.InvType == InventoryType.QuadStash)))
+                        DisplayDisenchantList(ingameUI.StashElement.VisibleStash.VisibleInventoryItems);
             }
-            IList<NormalInventoryItem> inventoryItems = ingameUI.StashElement.VisibleStash.VisibleInventoryItems;
+            if (ingameUI.InventoryPanel.IsVisible)
+                DisplayDisenchantList(ingameUI.InventoryPanel[InventoryIndex.PlayerInventory].VisibleInventoryItems);
+            NormalInventoryItem Itm = GameController.Game.IngameState.UIHover.AsObject<NormalInventoryItem>(); // get the MouseoverElement
+            if (Itm != null)
+                DisplayDisenchantItem(Itm);
+
+        }
+
+        private void DisplayDisenchantList(IList<NormalInventoryItem> inventoryItems)
+        {
             if (inventoryItems == null)
                 return;
             foreach (NormalInventoryItem item in inventoryItems)
             {
-                //LogMessage($"Checking items");
-                Mods mods = item.Item.GetComponent<Mods>();
-                if (mods != null)
-                { 
+                DisplayDisenchantItem(item);
+            }
+        }
+
+        private void DisplayDisenchantItem(NormalInventoryItem item)
+        {
+            Mods mods = item.Item.GetComponent<Mods>();
+            if (mods != null)
+            {
+                if (mods.Identified)
+                {
                     string UniqueItemName = mods.UniqueName;
-
-                    //var mods = item.Item?.GetComponent<Mods>();
-                    //LogMessage($"Checking item {UniqueItemName} -> Unique ");
-                    //LogMessage($"Checking item {mods.ItemRarity.ToString()}");
-
+                    var q = item.Item.GetComponent<Quality>();
+                    int Quality = q != null ? q.ItemQuality : 0;
                     Unique result = Uniques.FirstOrDefault(x => x.name == UniqueItemName);
                     if (result != null)
                     {
                         var rect = item.GetClientRect();
                         string txt = mods.UniqueName;
-                        Graphics.DrawText(result.dustValIlvl84.ToString(), new Vector2(rect.X + 1, rect.Y + 1), Color.White, 15);
-                        //var borderColor = Color.White;
-                        //if (mods.ItemLevel < 60)
-                        //    borderColor = Color.DarkGray;
-                        //else if (mods.ItemLevel < 75)
-                        //    borderColor = Color.Yellow;
-                        //else
-                        //    borderColor = Color.Green;
-                        //var drawRect = rect;
-                        //drawRect.X += 2;
-                        //drawRect.Y += 2;
-                        //drawRect.Width -= 4;
-                        //drawRect.Height -= 4;
-                        //Graphics.DrawFrame(drawRect, borderColor, 1);
-                    }
 
+                        int ItemValue = Quality == 20 ? result.dustValIlvl84Q20 : result.dustValIlvl84;
+                        int ItemValuePerSlot = ItemValue / (item.ItemHeight * item.ItemWidth);
+                        //LogMessage($"{UniqueItemName} - Quality:{Quality} - {ItemValue}");
+
+                        Color Drawcolor = Quality < 20 ? Color.White : Color.LightGreen;
+                        string DisplayText = Settings.Valuedisplay ? ItemValue.ToString() : ItemValuePerSlot.ToString();
+
+                        Graphics.DrawText(DisplayText, new Vector2(rect.X + 2, rect.Y + 2), Drawcolor, 15);
+                        if (Settings.ValueThreshold <= ItemValuePerSlot)
+                        {
+                            var borderColor = Drawcolor;
+                            var drawRect = rect;
+                            drawRect.X += 1;
+                            drawRect.Y += 1;
+                            drawRect.Width -= 2;
+                            drawRect.Height -= 2;
+                            Graphics.DrawFrame(drawRect, borderColor, 2);
+                        }
+                    }
                 }
             }
+
         }
-        //private (int stashIndex, List<NormalInventoryItem>) GetStashItems()
-        //{
-        //var result = new List<NormalInventoryItem>();
-        //var stashIndex = -1;
-        //if (GameController.Game.IngameState?.IngameUi?.StashElement?.IsVisible == true &&
-        //    GameController.Game.IngameState.IngameUi.StashElement.VisibleStash != null)
-        //{
-        //    stashIndex = GameController.Game.IngameState.IngameUi.StashElement.IndexVisibleStash;
-
-            //    var visibleInv = GameController.Game.IngameState.IngameUi.StashElement.VisibleStash.VisibleInventoryItems;
-            //    if (visibleInv != null && visibleInv.Count > 0)
-            //    {
-            //        foreach (var it in visibleInv)
-            //        {
-            //            if (it?.Item != null && it.Item.HasComponent<Unique>())
-            //                result.Add(it);
-            //        }
-            //    }
-            //}
-            //return (stashIndex, result);
-            //}
-
 
         public override Job Tick()
         {

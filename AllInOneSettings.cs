@@ -100,6 +100,12 @@ namespace AllInOne
 
         public ToggleNode EnableCraftInfo { get; set; }
 
+        // Disenchantment Values
+        public ToggleNode EnableDisenchantment { get; set; }
+        [Menu("Display value as Full number or as value/Slot")]
+        public ToggleNode Valuedisplay { get; set; }
+        [Menu("Mark items with more than Value per Slot")]
+        public RangeNode<int> ValueThreshold { get; set; }
 
         public AllInOneSettings()
         {
@@ -152,6 +158,12 @@ namespace AllInOne
             GLMobsNear = new ToggleNode(false); 
             GLMobRange = new RangeNode<int>(100, 1, 400);
             #endregion
+
+
+            EnableDisenchantment = new ToggleNode(true);
+            Valuedisplay = new ToggleNode(true);
+            ValueThreshold = new RangeNode<int> (3000, 1000, 50000);
+
 
             EnableILFrame = new ToggleNode(false);
         }
