@@ -4,3 +4,12 @@ Metadata/MiscellaneousObjects/Crucible/Fissure;Verisium Ore;ff99ff33
 Metadata/Monsters/LeagueKalguur/CrimsonIron/SmallGrowthMaps;Crimson Ore;ff99ff33
 Metadata/Monsters/LeagueKalguur/Daemon/CopperHeraldOfThunderDaemon_;Orichalcum Ore;ff99ff33
 Metadata/Monsters/LeagueKalguur/Daemon/CopperHeraldOfSkyfalllDaemon;Orichalcum Ore;ff99ff33
+
+
+------------------------------------------------------------------------------------------------------
+Ultimatum : 
+------------------------------------------------------------------------------------------------------
+Ingame UI
+ - UltimatumPanel
+  - ChoicesPanel
+   - ChoiceElements{1..3}

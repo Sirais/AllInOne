@@ -21,6 +21,8 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using TreeRoutine.Menu;
+using Map = ExileCore.PoEMemory.Components.Map;
+
 using static System.Net.Mime.MediaTypeNames;
 
 namespace AllInOne
@@ -54,6 +56,8 @@ namespace AllInOne
         private  MapMods _mapMods;
         public List<Unique> Uniques { get; set; }
 
+        public List<string> MapMods { get; set; }
+
         public AllInOne()
         {
             _mapMods = new MapMods();
@@ -65,6 +69,12 @@ namespace AllInOne
             Graphics.InitImage("directions.png");
             Graphics.InitImage("Icons.png");
             LoadOrCreateUniques();
+            string path = Path.Combine(DirectoryFullName, "Data", "Mapmods.txt");
+            if (File.Exists(path))
+                MapMods = File.ReadAllLines(path).ToList<string>();
+            else
+                MapMods = new List<string>();
+            LogMessage($"MapMods Loaded : {MapMods.Count} ", 60, Color.Gold);
         }
 
         public override void OnClose()
@@ -151,7 +161,7 @@ namespace AllInOne
             if (ImGui.TreeNodeEx("Disenchantment Display", collapsingHeaderFlags))
             {
                 Settings.EnableDisenchantment.Value = ImGuiExtension.Checkbox("Enanble Display", Settings.EnableDisenchantment);
-                Settings.Valuedisplay.Value = ImGuiExtension.Checkbox("uncheced = Display Value, Checked = display value per slot", Settings.Valuedisplay);
+                Settings.Valuedisplay.Value = ImGuiExtension.Checkbox("Display Value , display value per slot", Settings.Valuedisplay);
                 Settings.ValueThreshold.Value = ImGuiExtension.IntSlider("display Border on value per slot is higher", Settings.ValueThreshold);
             }
 
@@ -168,6 +178,8 @@ namespace AllInOne
                 MarkILvl();
             if (Settings.EnableDelve)
                 DelveWalls();
+            if (Settings.EnableDisenchantment)
+                DisenchantementValues();
             //if (Settings.EnableGolem) ;
 
             // Crafting stuff             
@@ -187,7 +199,7 @@ namespace AllInOne
             //    }
             //}
             //RenderItem();
-            FindUniques();
+            CollectMapMods();
         }
 
         private void RenderItem()
@@ -210,11 +222,58 @@ namespace AllInOne
             LogMessage($"Itemname : {UniqueItemName}, Disenchant Value:{result?.dustValIlvl84}");
         }
 
-        [Obsolete]
-        private void FindUniques()
+        #region Map Mod Collector
+        public void CollectMapMods()
         {
-            if (!Settings.EnableDisenchantment)
-                return; 
+            bool added = false;
+            var result = new List<NormalInventoryItem>();
+            var stashPanel = ingameUI.StashElement;
+            if (stashPanel.IsVisible)
+            {
+                var visibleStash = stashPanel.VisibleStash;
+                if (visibleStash != null)
+                    if (((visibleStash.InvType == InventoryType.NormalStash) || (visibleStash.InvType == InventoryType.QuadStash)))
+                        added = added | ReadMapModsfromList(ingameUI.StashElement.VisibleStash.VisibleInventoryItems);
+            }
+            if (ingameUI.InventoryPanel.IsVisible)
+                added = added | ReadMapModsfromList(ingameUI.InventoryPanel[InventoryIndex.PlayerInventory].VisibleInventoryItems);
+
+            if (added)
+            {
+                string path = Path.Combine(DirectoryFullName, "Data", "Mapmods.txt");
+                File.WriteAllLines(path, MapMods);
+            }
+        }
+
+        private bool ReadMapModsfromList(IList<NormalInventoryItem> Items)
+        {
+            bool added = false;
+            foreach (NormalInventoryItem item in Items)
+            {
+                if (item?.Item != null && item.Item.HasComponent<Map>())
+                {
+                    var Mapmods = item.Item.GetComponent<Mods>()?.ItemMods;
+                    foreach (ItemMod mod in Mapmods)
+                    {
+                        var MapMod = mod.RawName;
+                        bool found = MapMods.FirstOrDefault(m => m.Contains(MapMod)) != null;
+                        if (!found)
+                        {
+                            added = true;
+                            MapMods.Add(MapMod);
+                            LogMessage(MapMod, 1);
+                        }
+                    }
+                }
+            }
+            return added;
+        }
+        #endregion
+
+        #region Disenchantment Stuff
+        private void DisenchantementValues()
+        {
+            
             var stashPanel = ingameUI.StashElement;
             if (stashPanel.IsVisible)
             { 
@@ -227,22 +286,28 @@ namespace AllInOne
                 DisplayDisenchantList(ingameUI.InventoryPanel[InventoryIndex.PlayerInventory].VisibleInventoryItems);
             NormalInventoryItem Itm = GameController.Game.IngameState.UIHover.AsObject<NormalInventoryItem>(); // get the MouseoverElement
             if (Itm != null)
-                DisplayDisenchantItem(Itm);
+                DisplayDisenchantItem(Itm, Settings.ValueThreshold);
 
         }
-
         private void DisplayDisenchantList(IList<NormalInventoryItem> inventoryItems)
         {
+            int StartValue = Settings.ValueThreshold;
+            bool MarkedItem = false;
             if (inventoryItems == null)
                 return;
-            foreach (NormalInventoryItem item in inventoryItems)
+            while (!MarkedItem && (StartValue > 1000))
             {
-                DisplayDisenchantItem(item);
+                foreach (NormalInventoryItem item in inventoryItems)
+                {
+                    MarkedItem = MarkedItem | DisplayDisenchantItem(item, StartValue);
+                }
+                StartValue -= 100;
             }
         }
 
-        private void DisplayDisenchantItem(NormalInventoryItem item)
+        private bool DisplayDisenchantItem(NormalInventoryItem item, int Minvalue)
         {
+            bool isDisplay = false;
             Mods mods = item.Item.GetComponent<Mods>();
             if (mods != null)
             {
@@ -265,8 +330,9 @@ namespace AllInOne
                         string DisplayText = Settings.Valuedisplay ? ItemValue.ToString() : ItemValuePerSlot.ToString();
 
                         Graphics.DrawText(DisplayText, new Vector2(rect.X + 2, rect.Y + 2), Drawcolor, 15);
-                        if (Settings.ValueThreshold <= ItemValuePerSlot)
+                        if (Minvalue <= ItemValuePerSlot)
                         {
+                            isDisplay = true;
                             var borderColor = Drawcolor;
                             var drawRect = rect;
                             drawRect.X += 1;
@@ -278,8 +344,9 @@ namespace AllInOne
                     }
                 }
             }
-
+            return isDisplay;
         }
+        #endregion
 
         public override Job Tick()
         {
