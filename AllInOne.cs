@@ -198,11 +198,11 @@ namespace AllInOne
             //            Craftie(itemToCraft);
             //    }
             //}
-            //RenderItem();
+            CollectUniques();
             CollectMapMods();
         }
 
-        private void RenderItem()
+        private void CollectUniques()
         {
             NormalInventoryItem Itm = GameController.Game.IngameState.UIHover.AsObject<NormalInventoryItem>(); // get the MouseoverElement
             var hover = GameController.Game.IngameState.UIHover;
@@ -339,7 +339,10 @@ namespace AllInOne
                             drawRect.Y += 1;
                             drawRect.Width -= 2;
                             drawRect.Height -= 2;
-                            Graphics.DrawFrame(drawRect, borderColor, 2);
+                            if (mods.ItemLevel<83)
+                                Graphics.DrawFrame(drawRect, borderColor, 1);
+                            else
+                                Graphics.DrawFrame(drawRect, borderColor, 3);
                         }
                     }
                 }
